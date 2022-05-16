@@ -178,8 +178,17 @@ for (i in batchIdx) {
         library(BayesSEIR)
         
         # MCMC specifications
-        niter <- 1000        # total number of iterations to be run
-        nburn <- 0      # number of burn-in iterations to be discarded
+        # total number of iterations to be run
+        if (infPeriodSpec == 'exp') {
+            niter <- 1e6 
+        } else if (infPeriodSpec == 'PS') {
+            niter <- 5e5 
+        } else if (infPeriodSpec == 'IDD') {
+            niter <- 1.3e6 
+        } 
+        
+        # number of burn-in iterations to be discarded     
+        nburn <- 2e5     
         
         set.seed(x)
         
