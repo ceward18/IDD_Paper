@@ -1,0 +1,278 @@
+################################################################################
+# Model fitting IDD transmissibility models with unknown exposure times
+#   (MAIN RESULTS)
+# Using six model fits:
+#   exponential infectious period
+#   path-specific infections period
+#   gamma pdf       
+#   log-normal pdf 
+#   logistic decay  
+#   basis splines   
+# All six model fits are fit to all four data generating scenarios
+# Using two maximum duration of infectious period:
+#   15 days (truth)
+#   20 days (miss-specification)
+# Run three chains in parallel
+# For each model/simulation, want:
+#   Gelman Rubin to ensure convergence
+#   Posterior median estimated IDD curve
+#   Posterior mean estimated R0(t)
+#   MSE of R0
+#   MCMC Efficiency
+################################################################################
+
+### take in array parameter from HPC batch job
+args <- commandArgs(trailingOnly=TRUE)
+idx <- gsub('\r', '', args)
+idx <- as.numeric(idx)
+
+### load libraries
+library(parallel)
+library(coda)
+library(splines)
+library(BayesSEIR)
+
+source('../helper_functions.R')
+source('get_priors_inits.R')
+source('post_processing.R')
+
+datGens <- c('PS', 'IDD_peak', 'IDD_exp', 'IDD_logit')
+maxInfs <- c(15, 20)
+nSim <- 100
+
+
+modelsIDD <- expand.grid(datGen = datGens,
+                         infPeriodSpec = 'IDD',
+                         iddFun = c('dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
+                         maxInf = maxInfs,
+                         simNumber = 1:nSim,
+                         stringsAsFactors = FALSE)
+modelsIDD <- modelsIDD[order(modelsIDD$datGen, modelsIDD$infPeriodSpec,
+                             modelsIDD$iddFun, modelsIDD$maxInf, modelsIDD$simNumber),]
+
+
+modelsExp <- expand.grid(datGen = datGens,
+                         infPeriodSpec = 'exp',
+                         iddFun = NA,
+                         maxInf = maxInfs,
+                         simNumber = 1:nSim,
+                         stringsAsFactors = FALSE)
+modelsExp <- modelsExp[order(modelsExp$datGen, modelsExp$infPeriodSpec,
+                             modelsExp$iddFun, modelsExp$maxInf, modelsExp$simNumber),]
+
+
+modelsPS <- expand.grid(datGen = datGens,
+                        infPeriodSpec = 'PS',
+                        iddFun = NA,
+                        maxInf = maxInfs,
+                        simNumber = 1:nSim,
+                        stringsAsFactors = FALSE)
+modelsPS <- modelsPS[order(modelsPS$datGen, modelsPS$infPeriodSpec,
+                           modelsPS$iddFun, modelsPS$maxInf, modelsPS$simNumber),]
+
+
+# 4800 models to run (6 models * 4 data generation * 2 maxInfs * 100 sims)
+# IDD 1 - 3200
+# Exp 3201 - 4000
+# PS 4001 - 4800
+allModels <- rbind.data.frame(modelsIDD, modelsExp, modelsPS)
+
+# model specifications that are the same for all models
+N <- 5363500
+E0 <- 1
+I0 <- 0
+S0 <- N - E0 - I0
+
+# intervention time
+tstar <- 120
+
+# fit IDD and exp models in batches of 5 (800 batches total)
+# fit PS models in batches of 2 (400 batches total)
+# each batch is one model/data generation scenario
+# Models are ordered
+if (idx <= 800) {
+    batchSize <- 5
+} else {
+    
+    # PS idx starts at 2001
+    batchSize <- 2
+}
+
+
+batchIdx <- batchSize * (idx - 1) + 1:batchSize
+
+
+for (i in batchIdx) {
+    
+    infPeriodSpec_i <- allModels$infPeriodSpec[i]
+    iddFun_i <- allModels$iddFun[i]
+    simNumber_i <- allModels$simNumber[i]
+    maxInf_i <- allModels$maxInf[i]
+    datGen_i <- allModels$datGen[i]
+    
+    print(paste0('Model: ', infPeriodSpec_i,
+                 ', IDD Fun: ', iddFun_i,
+                 ', data gen: ', datGen_i,
+                 ', max inf: ', maxInf_i,
+                 ', sim number: ', simNumber_i))
+    
+    ############################################################################
+    ### set up data
+    
+    # load data
+    dat <- readRDS(paste0('data/', datGen_i, '_data.rds'))
+    
+    # extract data for simulation of interest
+    Istar <- dat$Istar[,simNumber_i]
+    
+    # trim/add to Istar and Estar in the case of excess 0's
+    # need maxInf days after last infection start
+    fullTime <- length(Istar)
+    lastInfTime <- max(which(Istar > 0))
+    if (lastInfTime + maxInf_i <= fullTime) {
+        
+        newTime <- lastInfTime + maxInf_i
+        
+        Istar <- Istar[1:newTime]
+        
+    } else {
+        
+        zerosAdd <- lastInfTime + maxInf_i - fullTime
+        
+        Istar <- c(Istar, rep(0, zerosAdd))
+        newTime <- length(Istar)
+        
+    }
+    
+    # design matrix for intervention
+    X <- getX(newTime, tstar)
+    
+    datList <- list(Istar = Istar,
+                    S0 = S0,
+                    E0 = E0,
+                    I0 = I0,
+                    N = N)
+    
+    ############################################################################
+    ### set up priors and initial values
+    
+    # set seed for reproducibility of initial values
+    set.seed(i)
+    
+    # get priors and initial values based on model/data generating scenario
+    priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec_i, 
+                                    iddFun = iddFun_i, 
+                                    datGen = datGen_i, 
+                                    maxInf = maxInf_i) 
+    
+    initsList<- priorsInits$initsList 
+    priorList<- priorsInits$priorList 
+    
+    # run three chains in parallel
+    cl <- makeCluster(3)
+    clusterExport(cl, list('datList',  'X', 'initsList',
+                           'priorList', 'infPeriodSpec_i', 'iddFun_i', 'maxInf_i'))
+    
+    resThree <- parLapplyLB(cl, 1:3, function(x) {
+        
+        library(BayesSEIR)
+        
+        # MCMC specifications
+        niter <- 1000        # total number of iterations to be run
+        nburn <- 0      # number of burn-in iterations to be discarded
+        
+        set.seed(x)
+        
+        # start timing for MCMC efficiency
+        startTime <- Sys.time()
+        
+        if (infPeriodSpec_i == 'exp') {
+            
+            res <-  mcmcSEIR(dat = datList, X = X, 
+                             inits = initsList, 
+                             niter = niter, nburn = nburn,
+                             infPeriodSpec = infPeriodSpec_i,
+                             priors = priorList,
+                             WAIC = TRUE)
+            
+        } else if (infPeriodSpec_i == 'PS') {
+            
+            res <- mcmcSEIR(dat = datList, X = X, 
+                            inits = initsList, 
+                            niter = niter, nburn = nburn,
+                            infPeriodSpec = infPeriodSpec_i,
+                            priors = priorList,
+                            dist = 'gamma', maxInf = maxInf_i,
+                            WAIC = TRUE)
+            
+        } else if (infPeriodSpec_i == 'IDD') {
+            
+            res <-  mcmcSEIR(dat = datList, X = X, 
+                             inits = initsList, 
+                             niter = niter, nburn = nburn,
+                             infPeriodSpec = infPeriodSpec_i,
+                             priors = priorList,
+                             iddFun = iddFun_i, maxInf = maxInf_i,
+                             WAIC = TRUE)
+        }
+
+        endTime <- Sys.time()
+        
+        res$chainTime <- as.numeric(endTime - startTime, units = 'mins')
+        res
+        
+    })
+    stopCluster(cl)
+    resThree[[1]]$chainTime
+
+    ############################################################################
+    # post processing of the model output
+    
+    postSummaries <- post_processing(modelOutput = resThree, EType = 'estimated',
+                                     infPeriodSpec = infPeriodSpec_i, 
+                                     datGen = datGen_i, iddFun = iddFun_i, 
+                                     simNumber = simNumber_i, maxInf = maxInf_i,
+                                     X = X, N = N)
+    
+    
+    # concatenate results across batches for output
+    if (i == batchIdx[1]) {
+        gdiagAll <- postSummaries$gdiag
+        postParamsAll <- postSummaries$paramsSummary
+        iddCurveAll <- postSummaries$iddSummary
+        r0All <- postSummaries$r0Summary
+        mcmcEffAll <- postSummaries$mcmcEffSummary
+        waicAll <- postSummaries$waicSummary
+        
+    } else {
+        gdiagAll <- rbind.data.frame(gdiagAll, postSummaries$gdiag)
+        postParamsAll <- rbind.data.frame(postParamsAll, postSummaries$paramsSummary)
+        iddCurveAll <- rbind.data.frame(iddCurveAll, postSummaries$iddSummary)
+        r0All <- rbind.data.frame(r0All, postSummaries$r0Summary)
+        mcmcEffAll <- rbind.data.frame(mcmcEffAll, postSummaries$mcmcEffSummary)
+        waicAll <- rbind.data.frame(waicAll, postSummaries$waicSummary)
+    }
+    
+
+} # end loop
+
+# concatenate back to list to save output
+batchOutput <- list(gdiagAll = gdiagAll,
+                    postParamsAll = postParamsAll,
+                    iddCurveAll = iddCurveAll,
+                    r0All = r0All,
+                    mcmcEffAll = mcmcEffAll,
+                    waicAll = waicAll)
+
+# save output in RDS form
+saveRDS(batchOutput, paste0('./batch_output/estimatedE_batch', idx, '.rds'))
+
+
+
+
+
+
+
+
+
+

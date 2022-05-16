@@ -1,0 +1,2 @@
+#!/bin/bash
+Rscript model_fitting_knownE.R $SGE_TASK_ID
