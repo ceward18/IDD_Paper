@@ -179,11 +179,11 @@ for (i in batchIdx) {
         
         # MCMC specifications
         # total number of iterations to be run
-        if (infPeriodSpec == 'exp') {
+        if (infPeriodSpec_i == 'exp') {
             niter <- 1e6 
-        } else if (infPeriodSpec == 'PS') {
+        } else if (infPeriodSpec_i == 'PS') {
             niter <- 5e5 
-        } else if (infPeriodSpec == 'IDD') {
+        } else if (infPeriodSpec_i == 'IDD') {
             niter <- 1.3e6 
         } 
         
@@ -232,7 +232,6 @@ for (i in batchIdx) {
         
     })
     stopCluster(cl)
-    resThree[[1]]$chainTime
 
     ############################################################################
     # post processing of the model output
