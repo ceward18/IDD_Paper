@@ -1,0 +1,2 @@
+#!/bin/bash
+Rscript run_models.R $SGE_TASK_ID
