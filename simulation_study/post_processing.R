@@ -38,6 +38,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     gdiag$param <- rownames(gdiag)
     rownames(gdiag) <- NULL
     gdiag <- cbind.data.frame(data.frame(datGen = datGen,
+                                         infPeriodSpec = infPeriodSpec,
                                          iddFun = iddFun,
                                          simNumber = simNumber,
                                          maxInf = maxInf),
@@ -89,6 +90,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         curveCI <- apply(p0SE, 1, quantile, probs = c(0.025, 0.975))
         
         iddSummary <- data.frame(datGen = datGen,
+                                 infPeriodSpec = infPeriodSpec,
                                  iddFun = iddFun,
                                  simNumber = simNumber,
                                  maxInf = maxInf,
@@ -98,6 +100,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
                                  upper = curveCI[1,])
     } else {
         iddSummary <- data.frame(datGen = NA,
+                                 infPeriodSpec = NA,
                                  iddFun = NA,
                                  simNumber = NA,
                                  maxInf = NA,
@@ -152,6 +155,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     r0CI <- apply(r0time, 1, quantile, probs = c(0.025, 0.975))
     
     r0Summary <- data.frame(datGen = datGen,
+                            infPeriodSpec = infPeriodSpec,
                             iddFun = iddFun,
                             simNumber = simNumber,
                             maxInf = maxInf,
@@ -184,6 +188,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         mcmcEffR0 <- effectiveSize(r0_mcmc_list) /  avgTime
         
         mcmcEffSummary <- data.frame(datGen = datGen,
+                                     infPeriodSpec = infPeriodSpec,
                                      iddFun = iddFun,
                                      simNumber = simNumber,
                                      maxInf = maxInf,
@@ -193,6 +198,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         
     } else {
         mcmcEffSummary <- data.frame(datGen = NA,
+                                     infPeriodSpec = NA,
                                      iddFun = NA,
                                      simNumber = NA,
                                      maxInf = NA,
@@ -213,6 +219,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         
         
         waicSummary <- data.frame(datGen = datGen,
+                                  infPeriodSpec = infPeriodSpec,
                                   iddFun = iddFun,
                                   simNumber = simNumber,
                                   maxInf = maxInf,
@@ -221,6 +228,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         
     } else {
         waicSummary <- data.frame(datGen = NA,
+                                  infPeriodSpec = NA,
                                   iddFun = NA,
                                   simNumber = NA,
                                   maxInf = NA,

@@ -16,9 +16,11 @@ idx <- as.numeric(idx)
 ### load libraries
 library(BayesSEIR)
 library(parallel)
+library(coda)
 
 # source helper functions
 source('../helper_functions.R')
+source('post_processing.R')
 
 # matrix of 6 models to be run
 modelsExpPS <- data.frame(infPeriodSpec = c('exp', 'PS'),
@@ -28,13 +30,6 @@ modelsIDD <- data.frame(infPeriodSpec = 'IDD',
                          iddFun = c('dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
                          stringsAsFactors = FALSE)
 allModels <- rbind.data.frame(modelsExpPS, modelsIDD)
-
-
-# 4800 models to run (6 models * 4 data generation * 2 maxInfs * 100 sims)
-# IDD 1 - 3200
-# Exp 3201 - 4000
-# PS 4001 - 4800
-allModels <- rbind.data.frame(modelsIDD, modelsExp, modelsPS)
 
 
 # load data from ABSEIR package
@@ -68,77 +63,85 @@ interventionTime <- which(ebola$Date[-c(1:3)] == as.Date('1995-05-10'))
 
 X <- cbind(1, cumsum(1:tau > interventionTime) / 100)
 
-
 # obtain model specifications by array parameter
 infPeriodSpec <- allModels$infPeriodSpec[idx]
 iddFun <- allModels$iddFun[idx]
 
-
-# get priors and initial values based on model/data generating scenario
-priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec, 
-                                iddFun = iddFun, 
-                                maxInf = maxInf) 
-
-initsList<- priorsInits$initsList 
-priorList<- priorsInits$priorList 
-
 # run three chains in parallel
 cl <- makeCluster(3)
-clusterExport(cl, list('datList',  'X', 'initsList',
-                       'priorList', 'infPeriodSpec_i', 'iddFun_i', 'maxInf_i'))
+clusterExport(cl, list('ebolaDat',  'X', 'infPeriodSpec', 'iddFun', 'maxInf', 'idx'))
 
 resThree <- parLapplyLB(cl, 1:3, function(x) {
     
     library(BayesSEIR)
     
     # MCMC specifications
-    # total number of iterations to be run
-    niter <- 500000
+    niter <- 500000    # total number of iterations to be run
+    nburn <- 50000     # number of burn-in iterations to be discarded     
     
-    # number of burn-in iterations to be discarded     
-    nburn <- 50000
+    niter <- 1000
+    nburn <- 1
+    
+    # get priors and initial values based on model/data generating scenario
+    
+    # set seed for reproducibility
+    set.seed(x + idx)
+    
+    source('get_priors_inits.R')
+    priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec, 
+                                    iddFun = iddFun, 
+                                    maxInf = maxInf) 
+    
+    initsList<- priorsInits$initsList 
+    priorList<- priorsInits$priorList 
+    
     
     set.seed(x)
     
-    # start timing for MCMC efficiency
-    startTime <- Sys.time()
-    
-    if (infPeriodSpec_i == 'exp') {
+    if (infPeriodSpec == 'exp') {
         
-        res <-  mcmcSEIR(dat = datList, X = X, 
+        res <-  mcmcSEIR(dat = ebolaDat, X = X, 
                          inits = initsList, 
                          niter = niter, nburn = nburn,
-                         infPeriodSpec = infPeriodSpec_i,
+                         infPeriodSpec = infPeriodSpec,
                          priors = priorList,
                          WAIC = TRUE)
         
-    } else if (infPeriodSpec_i == 'PS') {
+    } else if (infPeriodSpec == 'PS') {
         
-        res <- mcmcSEIR(dat = datList, X = X, 
+        res <- mcmcSEIR(dat = ebolaDat, X = X, 
                         inits = initsList, 
                         niter = niter, nburn = nburn,
-                        infPeriodSpec = infPeriodSpec_i,
+                        infPeriodSpec = infPeriodSpec,
                         priors = priorList,
-                        dist = 'gamma', maxInf = maxInf_i,
+                        dist = 'gamma', maxInf = maxInf,
                         WAIC = TRUE)
         
-    } else if (infPeriodSpec_i == 'IDD') {
+    } else if (infPeriodSpec == 'IDD') {
         
-        res <-  mcmcSEIR(dat = datList, X = X, 
+        res <-  mcmcSEIR(dat = ebolaDat, X = X, 
                          inits = initsList, 
                          niter = niter, nburn = nburn,
-                         infPeriodSpec = infPeriodSpec_i,
+                         infPeriodSpec = infPeriodSpec,
                          priors = priorList,
-                         iddFun = iddFun_i, maxInf = maxInf_i,
+                         iddFun = iddFun, maxInf = maxInf,
                          WAIC = TRUE)
     }
-    
-    endTime <- Sys.time()
     
     res
     
 })
 stopCluster(cl)
+
+# get summaries from chains
+postSummaries <- post_processing(modelOutput = resThree, EType = 'estimated',
+                                 infPeriodSpec = infPeriodSpec, 
+                                 datGen = NA, iddFun = iddFun, 
+                                 simNumber = NA, maxInf = maxInf,
+                                 X = X, N = N)
+
+
+
 
 
 
