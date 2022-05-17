@@ -79,7 +79,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
     niter <- 500000    # total number of iterations to be run
     nburn <- 50000     # number of burn-in iterations to be discarded     
     
-    niter <- 1000
+    niter <- 100
     nburn <- 1
     
     # get priors and initial values based on model/data generating scenario
@@ -134,13 +134,13 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
 stopCluster(cl)
 
 # get summaries from chains
-postSummaries <- post_processing(modelOutput = resThree, EType = 'estimated',
-                                 infPeriodSpec = infPeriodSpec, 
-                                 datGen = NA, iddFun = iddFun, 
-                                 simNumber = NA, maxInf = maxInf,
-                                 X = X, N = N)
+postSummaries <- post_processing(modelOutput = resThree, 
+                                 infPeriodSpec = infPeriodSpec, iddFun = iddFun, 
+                                 maxInf = maxInf, X = X, N = N)
 
 
+# save output in RDS form
+saveRDS(postSummaries, paste0('./output/ebola_batch', idx, '.rds'))
 
 
 

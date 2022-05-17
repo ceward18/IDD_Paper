@@ -9,7 +9,6 @@
 #   Posterior median estimated IDD curve
 #   Posterior mean estimated R0(t)
 #   WAIC
-#   MCMC Efficiency
 ################################################################################
 
 post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
@@ -26,6 +25,10 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
                                    samples2, 
                                    samples3)
     
+    paramsPost <- cbind.data.frame(data.frame(infPeriodSpec = infPeriodSpec,
+                                              iddFun = iddFun),
+                                   paramsPost)
+    
     ############################################################################
     ### gelman-rubin
     res_mcmc <- mcmc.list(mcmc(samples1), 
@@ -35,10 +38,8 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
     colnames(gdiag) <- c('gr', 'grUpper')
     gdiag$param <- rownames(gdiag)
     rownames(gdiag) <- NULL
-    gdiag <- cbind.data.frame(data.frame(datGen = datGen,
-                                         iddFun = iddFun,
-                                         simNumber = simNumber,
-                                         maxInf = maxInf),
+    gdiag <- cbind.data.frame(data.frame(infPeriodSpec = infPeriodSpec,
+                                         iddFun = iddFun),
                               gdiag)
     
     ############################################################################
@@ -86,19 +87,15 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
         curveMedian <- apply(p0SE, 1, median)
         curveCI <- apply(p0SE, 1, quantile, probs = c(0.025, 0.975))
         
-        iddSummary <- data.frame(datGen = datGen,
+        iddSummary <- data.frame(infPeriodSpec = infPeriodSpec,
                                  iddFun = iddFun,
-                                 simNumber = simNumber,
-                                 maxInf = maxInf,
                                  infDay = 1:maxInf,
                                  median = curveMedian,
                                  lower = curveCI[1,],
                                  upper = curveCI[1,])
     } else {
-        iddSummary <- data.frame(datGen = NA,
+        iddSummary <- data.frame(infPeriodSpec = NA,
                                  iddFun = NA,
-                                 simNumber = NA,
-                                 maxInf = NA,
                                  infDay = NA,
                                  median = NA,
                                  lower = NA,
@@ -149,89 +146,29 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
     r0Mean <- apply(r0time, 1, mean)
     r0CI <- apply(r0time, 1, quantile, probs = c(0.025, 0.975))
     
-    r0Summary <- data.frame(datGen = datGen,
+    r0Summary <- data.frame(infPeriodSpec = infPeriodSpec,
                             iddFun = iddFun,
-                            simNumber = simNumber,
-                            maxInf = maxInf,
                             time = 1:length(r0Mean),
                             mean = r0Mean,
                             lower = r0CI[1,],
                             upper = r0CI[1,])
     
-    
-    ############################################################################
-    # MCMC Efficiency = ESS / computation time
-    if (EType == 'estimated') {
-        
-        
-        # average time in minutes
-        avgTime <- mean(c(modelOutput[[1]]$chainTime,
-                          modelOutput[[2]]$chainTime,
-                          modelOutput[[3]]$chainTime))
-        
-        
-        # one for each parameter
-        mcmcEff <- effectiveSize(res_mcmc) /  avgTime
-        
-        # R0 efficiency
-        chainLength <- length(idxKeep)
-        r0_mcmc_list <- mcmc.list(mcmc(r0time[1,1:chainLength]),
-                                  mcmc(r0time[1,(chainLength + 1):(2 * chainLength)]),
-                                  mcmc(r0time[1,(2 * chainLength + 1):(3 * chainLength)]))
-        
-        mcmcEffR0 <- effectiveSize(r0_mcmc_list) /  avgTime
-        
-        mcmcEffSummary <- data.frame(datGen = datGen,
-                                     iddFun = iddFun,
-                                     simNumber = simNumber,
-                                     maxInf = maxInf,
-                                     param = c(names(mcmcEff), 'R0'),
-                                     eff = c(mcmcEff, mcmcEffR0))
-        
-        
-    } else {
-        mcmcEffSummary <- data.frame(datGen = NA,
-                                     iddFun = NA,
-                                     simNumber = NA,
-                                     maxInf = NA,
-                                     param = NA,
-                                     eff = NA)
-        
-    }
-    
-    
     ############################################################################
     # WAIC
     
-    if (EType == 'estimated') {
-        
-        avgWAIC <- mean(c(modelOutput[[1]]$WAIC,
-                          modelOutput[[2]]$WAIC,
-                          modelOutput[[3]]$WAIC))
-        
-        
-        waicSummary <- data.frame(datGen = datGen,
-                                  iddFun = iddFun,
-                                  simNumber = simNumber,
-                                  maxInf = maxInf,
-                                  waic = avgWAIC)
-        
-        
-    } else {
-        waicSummary <- data.frame(datGen = NA,
-                                  iddFun = NA,
-                                  simNumber = NA,
-                                  maxInf = NA,
-                                  waic = NA)
-        
-    }
+    avgWAIC <- mean(c(modelOutput[[1]]$WAIC,
+                      modelOutput[[2]]$WAIC,
+                      modelOutput[[3]]$WAIC))
     
+    
+    waicSummary <- data.frame(infPeriodSpec = infPeriodSpec,
+                              iddFun = iddFun,
+                              waic = avgWAIC)
     
     list(gdiag = gdiag,
          paramsSummary = paramsSummary,
          iddSummary = iddSummary,
          r0Summary = r0Summary,
-         mcmcEffSummary = mcmcEffSummary,
          waicSummary = waicSummary)
     
 }
