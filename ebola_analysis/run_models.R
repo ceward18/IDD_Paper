@@ -142,27 +142,3 @@ postSummaries <- post_processing(modelOutput = resThree,
 # save output in RDS form
 saveRDS(postSummaries, paste0('./output/ebola_batch', idx, '.rds'))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
