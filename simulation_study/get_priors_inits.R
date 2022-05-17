@@ -9,8 +9,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
     
     # beta and rateE priors are the same for all models
     betaPrior <- function(x) {
-        dnorm(x[1], mean = 0, sd = 4, log = T) + 
-            dnorm(x[2], mean = 0, sd = 10, log = T)
+        sum(dnorm(x, mean = 0, sd = 4, log = T)) 
     }
     
     rateEPrior <- function(x) {
