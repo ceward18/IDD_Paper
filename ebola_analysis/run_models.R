@@ -17,6 +17,7 @@ idx <- as.numeric(idx)
 library(BayesSEIR)
 library(parallel)
 library(coda)
+library(splines)
 
 # source helper functions
 source('../helper_functions.R')
@@ -74,6 +75,7 @@ clusterExport(cl, list('ebolaDat',  'X', 'infPeriodSpec', 'iddFun', 'maxInf', 'i
 resThree <- parLapplyLB(cl, 1:3, function(x) {
     
     library(BayesSEIR)
+    library(splines)
     
     # MCMC specifications
     niter <- 500000    # total number of iterations to be run

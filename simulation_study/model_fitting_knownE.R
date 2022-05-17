@@ -139,6 +139,7 @@ for (i in batchIdx) {
     resThree <- parLapplyLB(cl, 1:3, function(x) {
         
         library(BayesSEIR)
+        library(splines)
         
         # MCMC specifications
         niter <- 1e6
