@@ -33,7 +33,6 @@ library(splines)
 library(BayesSEIR)
 
 source('../helper_functions.R')
-source('get_priors_inits.R')
 source('post_processing.R')
 
 datGens <- c('PS', 'IDD_peak', 'IDD_exp', 'IDD_logit')
@@ -156,22 +155,12 @@ for (i in batchIdx) {
     ############################################################################
     ### set up priors and initial values
     
-    # set seed for reproducibility of initial values
-    set.seed(i)
-    
-    # get priors and initial values based on model/data generating scenario
-    priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec_i, 
-                                    iddFun = iddFun_i, 
-                                    datGen = datGen_i, 
-                                    maxInf = maxInf_i) 
-    
-    initsList<- priorsInits$initsList 
-    priorList<- priorsInits$priorList 
+  
     
     # run three chains in parallel
     cl <- makeCluster(3)
-    clusterExport(cl, list('datList',  'X', 'initsList',
-                           'priorList', 'infPeriodSpec_i', 'iddFun_i', 'maxInf_i'))
+    clusterExport(cl, list('datList',  'X', 'infPeriodSpec_i', 'iddFun_i',
+                           'datGen_i', 'maxInf_i', 'i'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
         
@@ -188,8 +177,22 @@ for (i in batchIdx) {
         } 
         
         # number of burn-in iterations to be discarded     
-        nburn <- 2e5     
+        nburn <- 2e5
         
+        # set seed for reproducibility of initial values
+        set.seed(x + i)
+        
+        # get priors and initial values based on model/data generating scenario
+        source('get_priors_inits.R')
+        priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec_i, 
+                                        iddFun = iddFun_i, 
+                                        datGen = datGen_i, 
+                                        maxInf = maxInf_i) 
+        
+        initsList<- priorsInits$initsList 
+        priorList<- priorsInits$priorList 
+        
+        # set seed for reproducibility of chains
         set.seed(x)
         
         # start timing for MCMC efficiency
