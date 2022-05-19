@@ -25,10 +25,6 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
                                    samples2, 
                                    samples3)
     
-    paramsPost <- cbind.data.frame(data.frame(infPeriodSpec = infPeriodSpec,
-                                              iddFun = iddFun),
-                                   paramsPost)
-    
     ############################################################################
     ### gelman-rubin
     res_mcmc <- mcmc.list(mcmc(samples1), 
@@ -52,6 +48,10 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
                                 lower = postCI[1,],
                                 upper = postCI[2,])
     rownames(paramsSummary) <- NULL
+    
+    paramsSummary <- cbind.data.frame(data.frame(infPeriodSpec = infPeriodSpec,
+                                                 iddFun = iddFun),
+                                      paramsSummary)
     
     
     ############################################################################
