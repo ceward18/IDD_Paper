@@ -11,14 +11,14 @@ library(RColorBrewer)
 library(scales)
 
 myTheme <-  theme_bw() +
-    theme(plot.title = element_text(h = 0.5, size = 16),
-          legend.title = element_text(size = 14, h = 0.5),
-          legend.text = element_text(size = 12),
-          axis.title = element_text(size = 14),
-          axis.text.x = element_text(size = 12),
-          axis.text.y = element_text(size = 12),
-          strip.background=element_rect(fill="white"),
-          strip.text = element_text(size = 14))
+  theme(plot.title = element_text(h = 0.5, size = 16),
+        legend.title = element_text(size = 14, h = 0.5),
+        legend.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        strip.background=element_rect(fill="white"),
+        strip.text = element_text(size = 14))
 
 source('../helper_functions.R')
 
@@ -36,13 +36,13 @@ iddCurveKnown <- readRDS(paste0('./batch_output/', batchFilesKnown[1]))
 iddCurveKnown$infPeriodSpec <- 'IDD'
 
 for (i in 2:length(batchFilesKnown)) {
-    knownE_i <- readRDS(paste0('./batch_output/', batchFilesKnown[i]))
-    
-    if (i %in% c(2, 9:16)) {
-        knownE_i$infPeriodSpec <- 'IDD'
-    }
-    
-    iddCurveKnown <-rbind.data.frame(iddCurveKnown, knownE_i)
+  knownE_i <- readRDS(paste0('./batch_output/', batchFilesKnown[i]))
+  
+  if (i %in% c(2, 9:16)) {
+    knownE_i$infPeriodSpec <- 'IDD'
+  }
+  
+  iddCurveKnown <-rbind.data.frame(iddCurveKnown, knownE_i)
 }
 
 iddCurveKnown$EstarType <- 'Known'
@@ -58,14 +58,14 @@ mcmcEffEst <- estE_i$mcmcEffAll
 waicEst <- estE_i$waicAll
 
 for (i in 2:length(batchFilesEst)) {
-    estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[i]))
-    
-    gdiagEst <-rbind.data.frame(gdiagEst, estE_i$gdiagAll)
-    postParamsEst <-rbind.data.frame(postParamsEst, estE_i$postParamsAll)
-    iddCurveEst <-rbind.data.frame(iddCurveEst, estE_i$iddCurveAll)
-    r0Est <-rbind.data.frame(r0Est, estE_i$r0All)
-    mcmcEffEst <-rbind.data.frame(mcmcEffEst, estE_i$mcmcEffAll)
-    waicEst <-rbind.data.frame(waicEst, estE_i$waicAll)
+  estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[i]))
+  
+  gdiagEst <-rbind.data.frame(gdiagEst, estE_i$gdiagAll)
+  postParamsEst <-rbind.data.frame(postParamsEst, estE_i$postParamsAll)
+  iddCurveEst <-rbind.data.frame(iddCurveEst, estE_i$iddCurveAll)
+  r0Est <-rbind.data.frame(r0Est, estE_i$r0All)
+  mcmcEffEst <-rbind.data.frame(mcmcEffEst, estE_i$mcmcEffAll)
+  waicEst <-rbind.data.frame(waicEst, estE_i$waicAll)
 }
 
 gdiagEst$EstarType <- 'Estimated'
@@ -77,8 +77,8 @@ waicEst$EstarType <- 'Estimated'
 
 # combine IDD Curves
 iddCurveAll <- rbind.data.frame(
-    iddCurveKnown[-which(colnames(iddCurveKnown) == 'allConverge')], 
-    iddCurveEst)
+  iddCurveKnown[-which(colnames(iddCurveKnown) == 'allConverge')], 
+  iddCurveEst)
 
 ################################################################################
 # Check convergence
@@ -92,10 +92,10 @@ table(notConvergeKnown$iddFun, notConvergeKnown$datGen, notConvergeKnown$maxInf)
 # estimated infectious period
 notConvergeEst <- gdiagEst[gdiagEst$gr > 1.1,]
 notConvergeModels <-  notConvergeEst[
-    !duplicated(notConvergeEst
-                [,-which(colnames(notConvergeEst) %in% 
-                             c('gr', 'grUpper', 'param'))]),
-    c('datGen', 'infPeriodSpec', 'iddFun', 'simNumber', 'maxInf')]
+  !duplicated(notConvergeEst
+              [,-which(colnames(notConvergeEst) %in% 
+                         c('gr', 'grUpper', 'param'))]),
+  c('datGen', 'infPeriodSpec', 'iddFun', 'simNumber', 'maxInf')]
 
 
 with(subset(notConvergeModels, maxInf == 15 & infPeriodSpec == 'IDD'),
@@ -174,40 +174,40 @@ iddCurveAll$datGen <- factor(iddCurveAll$datGen,
 # iddCurveAll <- iddCurveAll[-which(iddCurveAll$datGen == 'IDD Peak' & 
 #                                       iddCurveAll$iddFun == 'Logistic Decay'),]
 iddCurveAll <- iddCurveAll[-which(iddCurveAll$datGen == 'IDD Exp' & 
-                                      iddCurveAll$iddFun == 'Logistic Decay'),]
+                                    iddCurveAll$iddFun == 'Logistic Decay'),]
 iddCurveAll <- iddCurveAll[-which(iddCurveAll$datGen == 'IDD Logit' & 
-                                      iddCurveAll$iddFun %in% 
-                                      c('Gamma pdf', 'Log-normal pdf')),]
+                                    iddCurveAll$iddFun %in% 
+                                    c('Gamma pdf', 'Log-normal pdf')),]
 
 pal <- c('magenta3', 'darkorange', 'green3')
 
 p1 <- ggplot(data = subset(iddCurveAll, 
                            iddFun != 'Basis Spline' & 
-                               EstarType == 'Known' & 
-                               maxInf == 20)) +
-    geom_line(aes(x = infDay, y = median, group = simNumber),
-              color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
-    myTheme +
-    labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
-         title = 'Known Exposure Times')  +
-    scale_color_manual(values =pal) +
-    theme(legend.position = "none")
+                             EstarType == 'Known' & 
+                             maxInf == 20)) +
+  geom_line(aes(x = infDay, y = median, group = simNumber),
+            color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
+  facet_wrap(~datGen+iddFun, nrow = 1) + 
+  myTheme +
+  labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
+       title = 'Known Exposure Times')  +
+  scale_color_manual(values =pal) +
+  theme(legend.position = "none")
 
 p2 <- ggplot(data = subset(iddCurveAll, 
                            iddFun != 'Basis Spline' & 
-                               EstarType == 'Estimated' & 
-                               maxInf == 20)) +
-    geom_line(aes(x = infDay, y = median, group = simNumber),
-              color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
-    myTheme +
-    labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
-         title = 'Estimated Exposure Times')  +
-    scale_color_manual(values =pal) +
-    theme(legend.position = "none")
+                             EstarType == 'Estimated' & 
+                             maxInf == 20)) +
+  geom_line(aes(x = infDay, y = median, group = simNumber),
+            color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
+  facet_wrap(~datGen+iddFun, nrow = 1) + 
+  myTheme +
+  labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
+       title = 'Estimated Exposure Times')  +
+  scale_color_manual(values =pal) +
+  theme(legend.position = "none")
 
 pdf('./figures/Figure3.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
@@ -222,31 +222,31 @@ dev.off()
 
 p1 <- ggplot(data = subset(iddCurveAll, 
                            iddFun == 'Basis Spline' & 
-                               EstarType == 'Known' & 
-                               maxInf == 20)) +
-    geom_line(aes(x = infDay, y = median, group = simNumber),
-              color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
-    myTheme +
-    labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
-         title = 'Known Exposure Times')  +
-    scale_color_manual(values =pal) +
-    theme(legend.position = "none")
+                             EstarType == 'Known' & 
+                             maxInf == 20)) +
+  geom_line(aes(x = infDay, y = median, group = simNumber),
+            color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
+  facet_wrap(~datGen+iddFun, nrow = 1) + 
+  myTheme +
+  labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
+       title = 'Known Exposure Times')  +
+  scale_color_manual(values =pal) +
+  theme(legend.position = "none")
 
 p2 <- ggplot(data = subset(iddCurveAll, 
                            iddFun == 'Basis Spline' & 
-                               EstarType == 'Estimated' & 
-                               maxInf == 20)) +
-    geom_line(aes(x = infDay, y = median, group = simNumber),
-              color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
-    myTheme +
-    labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
-         title = 'Estimated Exposure Times')  +
-    scale_color_manual(values =pal) +
-    theme(legend.position = "none")
+                             EstarType == 'Estimated' & 
+                             maxInf == 20)) +
+  geom_line(aes(x = infDay, y = median, group = simNumber),
+            color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
+  facet_wrap(~datGen+iddFun, nrow = 1) + 
+  myTheme +
+  labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
+       title = 'Estimated Exposure Times')  +
+  scale_color_manual(values =pal) +
+  theme(legend.position = "none")
 
 pdf('./figures/Figure3.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
@@ -258,6 +258,8 @@ dev.off()
 # Figure 4: MSE of R0
 
 # get true R0
+maxInf <- 15
+N <- 5363500
 fullX <- getX(250, 120)
 
 # get true R0's
@@ -265,25 +267,25 @@ iddPeakR0 <- getR0(infPeriodSpec = 'IDD',
                    beta = c(0.25, -7), X = fullX, N = N,
                    infIDDParams = list(iddFun = dgammaIDD,
                                        iddParams = list(shape = 4, rate = 1),
-                                       maxInf = 15))
+                                       maxInf = maxInf))
 
 iddExpR0 <- getR0(infPeriodSpec = 'IDD', 
                   beta = c(0.4, -7), X = fullX, N = N,
                   infIDDParams = list(iddFun = dgammaIDD,
                                       iddParams = list(shape = 0.9, rate = 0.3),
-                                      maxInf = 15))
+                                      maxInf = maxInf))
 
 iddLogitR0 <- getR0(infPeriodSpec = 'IDD', 
                     beta = c(-1.77, -7), X = fullX, N = N,
                     infIDDParams = list(iddFun = logitIDD,
                                         iddParams = list(mid = 8, rate = 1.5),
-                                        maxInf = 15))
+                                        maxInf = maxInf))
 
 iddPSR0 <- getR0(infPeriodSpec = 'PS', 
                  beta = c(-1.77, -7), X = fullX, N = N,
                  infPSParams = list(dist = 'gamma',
                                     psParams = list(shape = 56, rate = 7),
-                                    maxInf = 15))
+                                    maxInf = maxInf))
 
 trueR0 <- data.frame(datGen = rep(c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'), 
                                   each = 250),
@@ -320,29 +322,39 @@ pal <- pal[c(1:3, 6, 4:5)]
 makeFootnote <- function(footnoteText,
                          size = .7, color = grey(.5),
                          xunit=0.85, yunit = 35) {
-    require(grid)
-    pushViewport(viewport())
-    grid.text(label = footnoteText ,
-              x = unit(xunit,"npc"),
-              y = unit(yunit, "mm"),
-              just = c("left", "bottom"),
-              gp = gpar(cex = size, col = color))
-    
-    popViewport()
+  require(grid)
+  pushViewport(viewport())
+  grid.text(label = footnoteText ,
+            x = unit(xunit,"npc"),
+            y = unit(yunit, "mm"),
+            just = c("left", "bottom"),
+            gp = gpar(cex = size, col = color))
+  
+  popViewport()
 }
 
+r0MSE$datGen <- factor(r0MSE$datGen,
+                       levels = c('IDD_peak', 'IDD_exp', 
+                                  'IDD_logit', 'PS'),
+                       labels = c('IDD Peak', 'IDD Exp', 
+                                  'IDD Logit', 'Path-specific'))
 
-library(scales)
+maxInfLabs <- c('15 day infectious period',
+                '20 day infectious period')
+names(maxInfLabs) <- c('15', '20')
+r0MSE$maxInf <- as.character(r0MSE$maxInf)
 
 pdf('./figures/Figure4.pdf', height = 6, width = 12)
-ggplot(data = subset(r0MSE, maxInf ==20), 
+ggplot(data = r0MSE, 
        aes(x = datGen, y = mse, fill = fitType, group = fitType)) +
-    geom_bar(position="dodge", stat="identity", col = 'black', size = 0.2) +
-    scale_fill_manual(values=pal, labels = parse_format()) +
-    myTheme +
-    labs(title = expression('MSE of'~ R[0]),
-         fill = 'Modeling Approach', y = 'MSE', x = 'Data Type') +
-    theme(legend.text.align = 0)
+  geom_bar(position="dodge", stat="identity", col = 'black', size = 0.2) +
+  facet_wrap(~maxInf, nrow = 2,
+             labeller = labeller(maxInf = maxInfLabs)) +
+  scale_fill_manual(values=pal, labels = parse_format()) +
+  myTheme +
+  labs(title = expression('MSE of'~ R[0]),
+       fill = 'Modeling Approach', y = 'MSE', x = 'Data Type') +
+  theme(legend.text.align = 0)
 makeFootnote(expression("\206"), 
              color = "black", size=1, xunit = 0.777, yunit = 35)
 makeFootnote("models fit using the proposed\nIDD transmissibility approach", 
@@ -361,6 +373,24 @@ mcmcEffEst$fitType[mcmcEffEst$infPeriodSpec == 'PS'] <- 'PS'
 ddply(mcmcEffEst, .(maxInf, fitType, param), summarize,
       meanEff = mean(eff),
       sdEff = sd(eff))
+
+################################################################################
+# Table 2: Mean, SD of WAIC
+
+waicEst$fitType <- waicEst$iddFun
+waicEst$fitType[waicEst$infPeriodSpec == 'exp'] <- 'exp'
+waicEst$fitType[waicEst$infPeriodSpec == 'PS'] <- 'PS'
+
+ggplot(waicEst, aes(x = datGen, y = waic, fill = fitType)) +
+  geom_boxplot() +
+  myTheme
+
+waicSummary <- ddply(waicEst, .(datGen, fitType), summarize,
+                     mean = mean(waic),
+                     sd = sd(waic))
+
+
+waicSummary <- waicSummary[order(waicSummary$datGen, waicSummary$mean),]
 
 
 ################################################################################
@@ -383,26 +413,26 @@ r0Est$fitType <- factor(r0Est$fitType,
 pal <- c('magenta3', 'darkorange', 'green3', 'royalblue2')
 
 ggplot(subset(r0Est, maxInf == 15), aes(x = time)) + 
-    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(y = truth, col = datGen), size = 1) +
-    facet_wrap(~datGen + fitType, nrow = 4) +
-    myTheme +
-    labs(x = 'Epidemic Time', y = expression(R[0](t)),
-         col = 'Data Generation\nScenario')  +
-    scale_color_manual(values =pal) +
-    ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
-    theme(legend.position = "none")
+  geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(y = truth, col = datGen), size = 1) +
+  facet_wrap(~datGen + fitType, nrow = 4) +
+  myTheme +
+  labs(x = 'Epidemic Time', y = expression(R[0](t)),
+       col = 'Data Generation\nScenario')  +
+  scale_color_manual(values =pal) +
+  ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
+  theme(legend.position = "none")
 
 ggplot(subset(r0Est, maxInf == 20), aes(x = time)) + 
-    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(y = truth, col = datGen), size = 1) +
-    facet_wrap(~datGen + fitType, nrow = 4) +
-    myTheme +
-    labs(x = 'Epidemic Time', y = expression(R[0](t)),
-         col = 'Data Generation\nScenario')  +
-    scale_color_manual(values =pal) +
-    ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
-    theme(legend.position = "none")
+  geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
+  geom_line(aes(y = truth, col = datGen), size = 1) +
+  facet_wrap(~datGen + fitType, nrow = 4) +
+  myTheme +
+  labs(x = 'Epidemic Time', y = expression(R[0](t)),
+       col = 'Data Generation\nScenario')  +
+  scale_color_manual(values =pal) +
+  ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
+  theme(legend.position = "none")
 
 
 
@@ -435,68 +465,68 @@ postParamsEst <- merge(postParamsEst, trueParams,
 # IDD Gamma
 ggplot(subset(postParamsEst, iddFun == 'dgammaIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 ggplot(subset(postParamsEst, iddFun == 'dgammaIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 # IDD log-normal
 ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 ggplot(subset(postParamsEst, iddFun == 'dlnormIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 # IDD logit
 ggplot(subset(postParamsEst, iddFun == 'logitIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 ggplot(subset(postParamsEst, iddFun == 'logitIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 # IDD spline
 ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
 ggplot(subset(postParamsEst, iddFun == 'dlnormIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+  geom_point() + 
+  geom_errorbar() +
+  geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
+  facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+  myTheme
 
