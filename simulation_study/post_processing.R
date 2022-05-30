@@ -105,7 +105,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
                                  infDay = 1:maxInf,
                                  median = curveMedian,
                                  lower = curveCI[1,],
-                                 upper = curveCI[1,])
+                                 upper = curveCI[2,])
     } else {
         iddSummary <- data.frame(datGen = NA,
                                  infPeriodSpec = NA,
@@ -170,7 +170,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
                             time = 1:length(r0Mean),
                             mean = r0Mean,
                             lower = r0CI[1,],
-                            upper = r0CI[1,])
+                            upper = r0CI[2,])
     
     
     ############################################################################

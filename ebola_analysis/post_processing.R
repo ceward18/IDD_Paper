@@ -92,7 +92,7 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
                                  infDay = 1:maxInf,
                                  median = curveMedian,
                                  lower = curveCI[1,],
-                                 upper = curveCI[1,])
+                                 upper = curveCI[2,])
     } else {
         iddSummary <- data.frame(infPeriodSpec = NA,
                                  iddFun = NA,
@@ -151,7 +151,7 @@ post_processing <- function(modelOutput, infPeriodSpec, iddFun, maxInf, X, N) {
                             time = 1:length(r0Mean),
                             mean = r0Mean,
                             lower = r0CI[1,],
-                            upper = r0CI[1,])
+                            upper = r0CI[2,])
     
     ############################################################################
     # WAIC

@@ -76,22 +76,22 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
         } else if (iddFun == 'dlnormIDD') {
             
             iddParamsPrior <- function(x) {
-                dnorm(x['meanlog'], 0, 0.2, log = T) +
+                dnorm(x['meanlog'], log(2), 0.2, log = T) +
                     dgamma(x['sdlog'], 1, 1, log = T)
             }
             
-            iddParamsInit = list(meanlog = rnorm(1, 0, 0.2),
+            iddParamsInit = list(meanlog = rnorm(1, log(2), 0.2),
                                  sdlog = rgamma(1, 1, 1))
             
         } else if (iddFun == 'logitIDD') {
             
             iddParamsPrior <- function(x) {
-                dnorm(x['rate'], 6, 1, log = T) +
-                    dgamma(x['mid'], 1, 1, log = T)
+                dnorm(x['mid'], 6, 1, log = T) +
+                    dgamma(x['rate'], 1, 1, log = T)
             }
             
-            iddParamsInit = list(rate = rnorm(1, 6, 1),
-                                 mid = rgamma(1, 1, 1))
+            iddParamsInit = list(mid = rnorm(1, 6, 1),
+                                 rate = rgamma(1, 1, 1))
             
         } else if (iddFun == 'splineIDD') {
             

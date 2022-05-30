@@ -17,24 +17,91 @@ myTheme <-  theme_bw() +
 
 
 batchFiles <- list.files('./batch_output/')
-batchFiles <- batchFiles[grep('knownE', batchFiles)]
+batchFilesKnown <- batchFiles[grep('knownE', batchFiles)]
+batchFilesEst <- batchFiles[grep('estimatedE', batchFiles)]
 
 
-knownEAll <- readRDS(paste0('./batch_output/', batchFiles[1]))
 
-for (i in 2:length(batchFiles)) {
-    knownE_i <- readRDS(paste0('./batch_output/', batchFiles[i]))
-    knownEAll <-rbind.data.frame(knownEAll, knownE_i)
+################################################################################
+
+# combine results with known infectious period
+iddCurveKnown <- readRDS(paste0('./batch_output/', batchFilesKnown[1]))
+iddCurveKnown$infPeriodSpec <- 'IDD'
+
+for (i in 2:length(batchFilesKnown)) {
+    knownE_i <- readRDS(paste0('./batch_output/', batchFilesKnown[i]))
+    
+    if (i %in% c(2, 9:16)) {
+        knownE_i$infPeriodSpec <- 'IDD'
+    }
+    
+    iddCurveKnown <-rbind.data.frame(iddCurveKnown, knownE_i)
 }
+
+iddCurveKnown$EstarType <- 'Known'
+
+# combine results with est infectious period
+estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[1]))
+
+gdiagEst <- estE_i$gdiagAll
+postParamsEst <- estE_i$postParamsAll
+iddCurveEst <- estE_i$iddCurveAll
+r0Est <- estE_i$r0All
+mcmcEffEst <- estE_i$mcmcEffAll
+waicEst <- estE_i$waicAll
+
+for (i in 2:length(batchFilesEst)) {
+    estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[i]))
+    
+    gdiagEst <-rbind.data.frame(gdiagEst, estE_i$gdiagAll)
+    postParamsEst <-rbind.data.frame(postParamsEst, estE_i$postParamsAll)
+    iddCurveEst <-rbind.data.frame(iddCurveEst, estE_i$iddCurveAll)
+    r0Est <-rbind.data.frame(r0Est, estE_i$r0All)
+    mcmcEffEst <-rbind.data.frame(mcmcEffEst, estE_i$mcmcEffAll)
+    waicEst <-rbind.data.frame(waicEst, estE_i$waicAll)
+}
+
+gdiagEst$EstarType <- 'Estimated'
+postParamsEst$EstarType <- 'Estimated'
+iddCurveEst$EstarType <- 'Estimated'
+r0Est$EstarType <- 'Estimated'
+mcmcEffEst$EstarType <- 'Estimated'
+waicEst$EstarType <- 'Estimated'
+
+# combine IDD Curves
+iddCurveAll <- rbind.data.frame(
+    iddCurveKnown[-which(colnames(iddCurveKnown) == 'allConverge')], 
+    iddCurveEst)
 
 ################################################################################
 # Check convergence
 
-notConverge <- knownEAll[!knownEAll$allConverge,]
-notConverge <- notConverge[notConverge$infDay == 1,]
+# known infectious period
+notConvergeKnown <- iddCurveKnown[!iddCurveKnown$allConverge,]
+notConvergeKnown <- notConvergeKnown[notConvergeKnown$infDay == 1,]
 
-table(notConverge$iddFun, notConverge$datGen, notConverge$maxInf)
+table(notConvergeKnown$iddFun, notConvergeKnown$datGen, notConvergeKnown$maxInf)
 
+# estimated infectious period
+notConvergeEst <- gdiagEst[gdiagEst$gr > 1.1,]
+notConvergeModels <-  notConvergeEst[
+    !duplicated(notConvergeEst
+                [,-which(colnames(notConvergeEst) %in% 
+                             c('gr', 'grUpper', 'param'))]),
+    c('datGen', 'infPeriodSpec', 'iddFun', 'simNumber', 'maxInf')]
+
+
+with(subset(notConvergeModels, maxInf == 15 & infPeriodSpec == 'IDD'),
+     table(datGen, iddFun))
+
+with(subset(notConvergeModels, maxInf == 20 & infPeriodSpec == 'IDD'),
+     table(datGen, iddFun))
+
+with(subset(notConvergeModels, infPeriodSpec == 'Exp'),
+     table(datGen, maxInf))
+
+with(subset(notConvergeModels, infPeriodSpec == 'PS'),
+     table(datGen, maxInf))
 
 ################################################################################
 # plot median IDD curve compared to truth
@@ -66,12 +133,12 @@ knownEAll <- knownEAll[order(knownEAll$datGen, knownEAll$iddFun,
 
 # format for plotting
 knownEAll$iddFun <- factor(knownEAll$iddFun,
-                                   levels = c('dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
-                                   labels = c('Gamma pdf', 'Log-normal pdf', 'Logistic Decay', 'Basis Spline'))
+                           levels = c('dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
+                           labels = c('Gamma pdf', 'Log-normal pdf', 'Logistic Decay', 'Basis Spline'))
 
 knownEAll$datGen <- factor(knownEAll$datGen,
-                                   levels = c('IDD_peak', 'IDD_exp', 'IDD_logit'),
-                                   labels = c('IDD Peak', 'IDD Exp', 'IDD Logit'))
+                           levels = c('IDD_peak', 'IDD_exp', 'IDD_logit'),
+                           labels = c('IDD Peak', 'IDD Exp', 'IDD Logit'))
 
 knownEAll$EstarType <- 'known'
 

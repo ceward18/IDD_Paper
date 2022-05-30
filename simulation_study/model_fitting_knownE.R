@@ -143,7 +143,7 @@ for (i in batchIdx) {
         
         # MCMC specifications
         niter <- 1e6
-        nburn <- 2e5
+        nburn <- 1e5
         
         # set seed for reproducibility of initial values
         set.seed(x + i)

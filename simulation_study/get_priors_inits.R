@@ -100,12 +100,12 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
         } else if (iddFun == 'logitIDD') {
             
             iddParamsPrior <- function(x) {
-                dnorm(x['rate'], 8, 1, log = T) +
-                    dgamma(x['mid'], 1, 1, log = T)
+                dnorm(x['mid'], 8, 1, log = T) +
+                    dgamma(x['rate'], 1, 1, log = T)
             }
             
-            iddParamsInit = list(rate = rnorm(1, 8, 1),
-                                 mid = rgamma(1, 1, 1))
+            iddParamsInit = list(mid = rnorm(1, 8, 1),
+                                 rate = rgamma(1, 1, 1))
             
         } else if (iddFun == 'splineIDD') {
             

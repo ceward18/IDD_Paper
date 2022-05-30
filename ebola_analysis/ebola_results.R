@@ -1,0 +1,145 @@
+################################################################################
+# Results of the Ebola Analysis
+################################################################################
+
+library(BayesSEIR)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(plyr)
+library(RColorBrewer)
+library(scales)
+
+myTheme <-  theme_bw() +
+    theme(plot.title = element_text(h = 0.5, size = 16),
+          legend.title = element_text(size = 14, h = 0.5),
+          legend.text = element_text(size = 12),
+          axis.title = element_text(size = 14),
+          axis.text.x = element_text(size = 12),
+          axis.text.y = element_text(size = 12),
+          strip.background=element_rect(fill="white"),
+          strip.text = element_text(size = 14))
+
+source('../helper_functions.R')
+
+
+################################################################################
+### Combine batch files
+
+batchFiles <- list.files('./output/')
+
+# combine results with est infectious period
+batch_i <- readRDS(paste0('./output/', batchFiles[1]))
+
+gdiag <- batch_i$gdiag
+paramsSummary <- batch_i$paramsSummary
+iddSummary <- batch_i$iddSummary
+r0Summary <- batch_i$r0Summary
+waicSummary <- batch_i$waicSummary
+
+for (i in 2:length(batchFiles)) {
+    batch_i <- readRDS(paste0('./output/', batchFiles[i]))
+    
+    gdiag <-rbind.data.frame(gdiag, batch_i$gdiag)
+    paramsSummary <-rbind.data.frame(paramsSummary, batch_i$paramsSummary)
+    iddSummary <-rbind.data.frame(iddSummary, batch_i$iddSummary)
+    r0Summary <-rbind.data.frame(r0Summary, batch_i$r0Summary)
+    waicSummary <-rbind.data.frame(waicSummary, batch_i$waicSummary)
+}
+
+
+################################################################################
+### Check convergence
+
+# should be 0
+sum(gdiag$gr > 1.1)
+
+################################################################################
+### Figure 6: Posterior mean and 95% CI for R0(t)
+
+r0Summary$fitType <- r0Summary$iddFun
+r0Summary$fitType[r0Summary$infPeriodSpec == 'exp'] <- 'exp'
+r0Summary$fitType[r0Summary$infPeriodSpec == 'PS'] <- 'PS'
+
+r0Summary$fitType <- factor(r0Summary$fitType, 
+                            levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
+                                       'logitIDD', 'splineIDD'),
+                            labels = c('Exponential', 'Path-specific', 
+                                       'IDD - Gamma pdf', 'IDD - Log-normal pdf',
+                                       'IDD - Logistic Decay', 'IDD - Basis Spline'))
+
+pal <- brewer.pal(6, 'Dark2')
+
+ggplot(r0Summary, aes(x = time, y = mean, ymin = lower, ymax = upper)) +
+    geom_line(aes(col = fitType), size= 1) + 
+    geom_ribbon(aes(fill = fitType), alpha = 0.3) + 
+    geom_hline(yintercept = 1, size = 1, linetype = 2) +
+    facet_wrap(~fitType) +
+    myTheme +  
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    guides(fill = 'none', col = 'none')
+
+
+################################################################################
+### Figure 7: Posterior mean and 95% CI for IDD curves
+
+iddSummary <- iddSummary[!is.na(iddSummary$iddFun),]
+
+iddSummary$iddFun <- factor(iddSummary$iddFun, 
+                            levels = c('dgammaIDD', 'dlnormIDD',
+                                       'logitIDD', 'splineIDD'),
+                            labels = c('Gamma pdf', 'Log-normal pdf',
+                                       'Logistic Decay', 'Basis Spline'))
+
+
+ggplot(iddSummary, aes(x = infDay, y = median, ymin = lower, ymax = upper)) +
+    geom_line(aes(col = iddFun), size= 1) + 
+    geom_ribbon(aes(fill = iddFun), alpha = 0.3) + 
+    facet_wrap(~iddFun, nrow = 1) +
+    myTheme +  
+    labs(x = 'Days Infectious', y = expression(pi[0]^(SE))) +
+    scale_color_manual(values = pal[-c(1,2)]) +
+    scale_fill_manual(values = pal[-c(1,2)]) +
+    guides(fill = 'none', col = 'none') +
+    ggtitle(expression('Posterior median and 95% CI of '~pi[0]^(SE)))
+
+################################################################################
+### Table 2: WAIC by model
+
+waicSummary$fitType <- waicSummary$iddFun
+waicSummary$fitType[waicSummary$infPeriodSpec == 'exp'] <- 'exp'
+waicSummary$fitType[waicSummary$infPeriodSpec == 'PS'] <- 'PS'
+
+waicSummary$fitType <- factor(waicSummary$fitType, 
+                            levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
+                                       'logitIDD', 'splineIDD'),
+                            labels = c('Exponential', 'Path-specific', 
+                                       'Gamma pdf', 'Log-normal pdf',
+                                       'Logistic Decay', 'Basis Spline'))
+
+waicSummary[,c('fitType', 'waic')]
+
+
+################################################################################
+### Supplemental Table: Posterior mean and 95% CIs for each parameter
+
+paramsSummary$fitType <- paramsSummary$iddFun
+paramsSummary$fitType[paramsSummary$infPeriodSpec == 'exp'] <- 'exp'
+paramsSummary$fitType[paramsSummary$infPeriodSpec == 'PS'] <- 'PS'
+
+paramsSummary$fitType <- factor(paramsSummary$fitType, 
+                              levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
+                                         'logitIDD', 'splineIDD'),
+                              labels = c('Exponential', 'Path-specific', 
+                                         'Gamma pdf', 'Log-normal pdf',
+                                         'Logistic Decay', 'Basis Spline'))
+
+paramsSummary$mean <- round(paramsSummary$mean, 2)
+paramsSummary$ci <- paste0('(', round(paramsSummary$lower, 2), ', ', 
+                           round(paramsSummary$upper, 2), ')')
+
+paramsSummary[,c('fitType', 'mean', 'ci')]
+
+
