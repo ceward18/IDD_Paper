@@ -10,8 +10,10 @@
 ################################################################################
 
 args <- commandArgs(trailingOnly=TRUE)
+print(args)
 idx <- gsub('\r', '', args)
 idx <- as.numeric(idx)
+print(idx)
 
 ### load libraries
 library(BayesSEIR)
