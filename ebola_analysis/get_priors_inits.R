@@ -96,17 +96,17 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
         } else if (iddFun == 'splineIDD') {
             
             iddParamsPrior <- function(x) {
-                sum(dnorm(x[1:2], 0, 4, log = T)) +
-                    dnorm(x[3], -2, 4, log = T) +
-                    dnorm(x[4], -3, 4, log = T) +
-                    dnorm(x[5], -4, 4, log = T)
+                sum(dnorm(x[1:2], 0, 2, log = T)) +
+                    dnorm(x[3], -2, 2, log = T) +
+                    dnorm(x[4], -3, 2, log = T) +
+                    dnorm(x[5], -4, 2, log = T)
             }
             
-            iddParamsInit = list(b1 = rnorm(1, 0, 4),
-                                 b2 = rnorm(1, 0, 4),
-                                 b3 = rnorm(1, -2, 4),
-                                 b4 = rnorm(1, -3, 4),
-                                 b5 = rnorm(1, -4, 4),
+            iddParamsInit = list(b1 = rnorm(1, 0, 2),
+                                 b2 = rnorm(1, 0, 2),
+                                 b3 = rnorm(1, -2, 2),
+                                 b4 = rnorm(1, -3, 2),
+                                 b5 = rnorm(1, -4, 2),
                                  XBasis = bs(1:maxInf, df = 5))
         } 
         

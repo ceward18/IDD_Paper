@@ -131,7 +131,7 @@ iddLogitCurve <-  1 - exp(-exp(-1.77) * iddLogitCurve /N)
 pal <- c('magenta3', 'darkorange', 'green3')
 
 # bottom, left, top, and right.
-pdf('./figures/Figure1.pdf', height = 3.5, width = 9.5)
+pdf('../figures/Figure1.pdf', height = 3.5, width = 9.5)
 par(mfrow = c(1, 3), mar = c(5.1, 2.1, 4.1, 2.1))
 plot(1:maxInf, iddPeakCurve, ylab = '', yaxt = 'n', type = 'l',
      xlab = 'Days Infectious', cex.axis = 1.5, cex.main = 2, cex.lab = 2,
@@ -209,7 +209,7 @@ p2 <- ggplot(data = subset(iddCurveAll,
   scale_color_manual(values =pal) +
   theme(legend.position = "none")
 
-pdf('./figures/Figure3.pdf', height = 7, width = 10)
+pdf('../figures/Figure3.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
              top = textGrob(expression('Posterior median estimates of '~pi[0]^(SE)),
                             gp = gpar(fontsize = 18, font = 2)))
@@ -248,7 +248,7 @@ p2 <- ggplot(data = subset(iddCurveAll,
   scale_color_manual(values =pal) +
   theme(legend.position = "none")
 
-pdf('./figures/Figure3.pdf', height = 7, width = 10)
+pdf('../figures/Figure3.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
              top = textGrob(expression('Posterior median estimates of '~pi[0]^(SE)),
                             gp = gpar(fontsize = 18, font = 2)))
@@ -344,7 +344,7 @@ maxInfLabs <- c('15 day infectious period',
 names(maxInfLabs) <- c('15', '20')
 r0MSE$maxInf <- as.character(r0MSE$maxInf)
 
-pdf('./figures/Figure4.pdf', height = 6, width = 12)
+pdf('../figures/Figure4.pdf', height = 6, width = 12)
 ggplot(data = r0MSE, 
        aes(x = datGen, y = mse, fill = fitType, group = fitType)) +
   geom_bar(position="dodge", stat="identity", col = 'black', size = 0.2) +

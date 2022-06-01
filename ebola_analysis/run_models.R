@@ -16,6 +16,7 @@ idx <- as.numeric(idx)
 ### load libraries
 library(BayesSEIR)
 library(parallel)
+library(ABSEIR)
 library(coda)
 library(splines)
 
