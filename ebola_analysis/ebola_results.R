@@ -68,19 +68,23 @@ r0Summary$fitType <- factor(r0Summary$fitType,
                                        'IDD - Gamma pdf', 'IDD - Log-normal pdf',
                                        'IDD - Logistic Decay', 'IDD - Basis Spline'))
 
-pal <- brewer.pal(6, 'Dark2')
+pal <- brewer.pal(6, 'Set2')
 
-ggplot(r0Summary, aes(x = time, y = mean, ymin = lower, ymax = upper)) +
-    geom_line(aes(col = fitType), size= 1) + 
-    geom_ribbon(aes(fill = fitType), alpha = 0.3) + 
+pdf('./figures/ebola_r0.pdf', height = 7, width = 10)
+ggplot(r0Summary, aes(x = time, y = mean, 
+                      ymin = lower, ymax = upper,
+                      col = fitType)) +
+    geom_line(size = 1.5) + 
+    geom_ribbon(aes(fill = fitType), alpha = 0.1) + 
     geom_hline(yintercept = 1, size = 1, linetype = 2) +
     facet_wrap(~fitType) +
     myTheme +  
+    ggtitle(expression('Posterior mean and 95% CI of' ~R[0](t))) +
     labs(x = 'Epidemic Time', y = expression(R[0](t))) +
     scale_color_manual(values = pal) +
     scale_fill_manual(values = pal) +
     guides(fill = 'none', col = 'none')
-
+dev.off()
 
 ################################################################################
 ### Figure 7: Posterior mean and 95% CI for IDD curves
@@ -93,17 +97,22 @@ iddSummary$iddFun <- factor(iddSummary$iddFun,
                             labels = c('Gamma pdf', 'Log-normal pdf',
                                        'Logistic Decay', 'Basis Spline'))
 
+iddCurvePal <- pal[3:6]
 
-ggplot(iddSummary, aes(x = infDay, y = median, ymin = lower, ymax = upper)) +
-    geom_line(aes(col = iddFun), size= 1) + 
+pdf('./figures/ebola_iddCurves.pdf', height = 4, width = 10)
+ggplot(iddSummary, aes(x = infDay, y = median, 
+                       ymin = lower, ymax = upper,
+                       col = iddFun)) +
+    geom_line(size= 1.3) + 
     geom_ribbon(aes(fill = iddFun), alpha = 0.3) + 
     facet_wrap(~iddFun, nrow = 1) +
     myTheme +  
     labs(x = 'Days Infectious', y = expression(pi[0]^(SE))) +
-    scale_color_manual(values = pal[-c(1,2)]) +
-    scale_fill_manual(values = pal[-c(1,2)]) +
+    scale_color_manual(values = iddCurvePal) +
+    scale_fill_manual(values = iddCurvePal) +
     guides(fill = 'none', col = 'none') +
     ggtitle(expression('Posterior median and 95% CI of '~pi[0]^(SE)))
+dev.off()
 
 ################################################################################
 ### Table 2: WAIC by model
@@ -113,11 +122,11 @@ waicSummary$fitType[waicSummary$infPeriodSpec == 'exp'] <- 'exp'
 waicSummary$fitType[waicSummary$infPeriodSpec == 'PS'] <- 'PS'
 
 waicSummary$fitType <- factor(waicSummary$fitType, 
-                            levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
-                                       'logitIDD', 'splineIDD'),
-                            labels = c('Exponential', 'Path-specific', 
-                                       'Gamma pdf', 'Log-normal pdf',
-                                       'Logistic Decay', 'Basis Spline'))
+                              levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
+                                         'logitIDD', 'splineIDD'),
+                              labels = c('Exponential', 'Path-specific', 
+                                         'Gamma pdf', 'Log-normal pdf',
+                                         'Logistic Decay', 'Basis Spline'))
 
 waicSummary[,c('fitType', 'waic')]
 
@@ -130,16 +139,16 @@ paramsSummary$fitType[paramsSummary$infPeriodSpec == 'exp'] <- 'exp'
 paramsSummary$fitType[paramsSummary$infPeriodSpec == 'PS'] <- 'PS'
 
 paramsSummary$fitType <- factor(paramsSummary$fitType, 
-                              levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
-                                         'logitIDD', 'splineIDD'),
-                              labels = c('Exponential', 'Path-specific', 
-                                         'Gamma pdf', 'Log-normal pdf',
-                                         'Logistic Decay', 'Basis Spline'))
+                                levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD',
+                                           'logitIDD', 'splineIDD'),
+                                labels = c('Exponential', 'Path-specific', 
+                                           'Gamma pdf', 'Log-normal pdf',
+                                           'Logistic Decay', 'Basis Spline'))
 
 paramsSummary$mean <- round(paramsSummary$mean, 2)
 paramsSummary$ci <- paste0('(', round(paramsSummary$lower, 2), ', ', 
                            round(paramsSummary$upper, 2), ')')
 
-paramsSummary[,c('fitType', 'mean', 'ci')]
+paramsSummary[,c('fitType', 'param', 'mean', 'ci')]
 
 
