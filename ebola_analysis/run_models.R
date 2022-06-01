@@ -78,7 +78,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
     library(splines)
     
     # MCMC specifications
-    niter <- 600000    # total number of iterations to be run
+    niter <- 500000    # total number of iterations to be run
     nburn <- 100000     # number of burn-in iterations to be discarded     
 
     # get priors and initial values based on model/data generating scenario
