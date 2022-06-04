@@ -1,6 +1,6 @@
 ################################################################################
 # time per iteration for IDD, Exp, PS for varying sizes of epidemics
-# takes ~ 
+# takes ~ 1.5 hours to run 
 ################################################################################
 
 library(BayesSEIR)
@@ -18,7 +18,7 @@ rateE <- 1/7
 rateI <- 1/7
 
 # various population sizes to be considered
-NVec <- c(200, 2000, 5000, 10000, 15000, 25000, 50000)
+NVec <- c(200, 2000, 5000, 10000, 15000, 25000)
 
 # MCMC settings (low iterations because just running for time per iter)
 niter <- 100

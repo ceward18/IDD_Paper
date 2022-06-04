@@ -18,8 +18,8 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
     
     # beta and rateE initial values:
     # initial value on beta2 negative to reflect expected intervention effect
-    betaInit <- c(rnorm(1, 0, 4),
-                  runif(1, -10, 0))
+    betaInit <- c(rnorm(1, 0, 1),
+                  runif(1, -10, -4))
     
     rateEInit <- rgamma(1, 20, 100)
     
@@ -70,8 +70,8 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
                     dgamma(x['rate'], 1, 1, log = T)
             }
             
-            iddParamsInit = list(shape = rgamma(1, 1, 1),
-                                 rate = rgamma(1, 1, 1))
+            iddParamsInit = list(shape = runif(1, 0.2, 5),
+                                 rate = runif(1, 0.1, 2))
             
         } else if (iddFun == 'dlnormIDD') {
             
@@ -105,7 +105,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
             }
             
             iddParamsInit = list(mid = rnorm(1, 8, 1),
-                                 rate = rgamma(1, 1, 1))
+                                 rate = runif(1, 0.5, 2))
             
         } else if (iddFun == 'splineIDD') {
             
@@ -113,11 +113,11 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
                 sum(dnorm(x, 0, 4, log = T)) 
             }
             
-            iddParamsInit = list(b1 = rnorm(1, 0, 4),
-                                 b2 = rnorm(1, 0, 4),
-                                 b3 = rnorm(1, 0, 4),
-                                 b4 = rnorm(1, 0, 4),
-                                 b5 = rnorm(1, 0, 4),
+            iddParamsInit = list(b1 = rnorm(1, 0, 2),
+                                 b2 = rnorm(1, 0, 2),
+                                 b3 = rnorm(1, 0, 2),
+                                 b4 = rnorm(1, 0, 2),
+                                 b5 = rnorm(1, 0, 2),
                                  XBasis = bs(1:maxInf, df = 5))
         } 
         

@@ -7,14 +7,14 @@ modTime <- readRDS('timePerIter.rds')
 # format for plot legend
 modTime$model <- factor(modTime$model,
                         levels = c('PS', 'exp', 'IDD'),
-                       levels = c('Path-specific', 'Exponential', 'IDD'))
+                        labels = c('Path-specific', 'Exponential', 'IDD'))
 
 # color palette for plot
 myPal <- rev(c('royalblue2', 'goldenrod3', 'orangered2'))
 
-pdf("../figures/figure8.pdf", height = 4, width = 8)
+pdf("../figures/scalability_fig8.pdf", height = 4, width = 8)
 ggplot(modTime, aes(x = nInf, y = sec, group = model, 
-                   color = model, linetype = model)) +
+                    color = model, linetype = model)) +
     geom_point(size = 2.5) + geom_line(size = 1.2) +
     theme_bw() +
     labs(title = 'Iteration time by epidemic size',

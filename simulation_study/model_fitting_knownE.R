@@ -136,17 +136,17 @@ for (i in batchIdx) {
     clusterExport(cl, list('datList',  'X', 'iddFun_i', 'datGen_i', 
                            'maxInf_i', 'i'))
     
-    resThree <- parLapplyLB(cl, 1:3, function(x) {
+    resThree <- parLapplyLB(cl, X = 1:3, fun = function(clIdx) {
         
         library(BayesSEIR)
         library(splines)
         
         # MCMC specifications
-        niter <- 1e6
-        nburn <- 1e5
+        niter <- 600000
+        nburn <- 500000
         
         # set seed for reproducibility of initial values
-        set.seed(x + i)
+        set.seed(clIdx + i)
         
         # get priors and initial values based on model/data generating scenario
         source('get_priors_inits.R')
@@ -157,17 +157,21 @@ for (i in batchIdx) {
         
         initsList<- priorsInits$initsList 
         priorList<- priorsInits$priorList 
-        
-        set.seed(x)
-        fullPost <- mcmcSEIR(dat = datList, X = X, 
+
+        res <- mcmcSEIR(dat = datList, X = X, 
                              inits = initsList, 
                              niter = niter, nburn = nburn,
                              infPeriodSpec = 'IDD',
                              priors = priorList,
                              iddFun = iddFun_i, maxInf = maxInf_i,
-                             EKnown = TRUE)
+                             EKnown = TRUE,
+                             WAIC = TRUE)
         
-        list(fullPost = fullPost)
+        list(fullPost = res$fullPost,
+             waic = res$WAIC,
+             seed = clIdx + i,
+             initsList = initsList,
+             chain = clIdx)
     })
     stopCluster(cl)
     
