@@ -1,4 +1,0 @@
-Error in checkForRemoteErrors(val) : 
-  one node produced an error: missing value where TRUE/FALSE needed
-Calls: parLapplyLB ... clusterApplyLB -> dynamicClusterApply -> checkForRemoteErrors
-Execution halted

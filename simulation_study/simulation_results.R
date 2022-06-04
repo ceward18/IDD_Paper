@@ -50,22 +50,22 @@ iddCurveKnown$EstarType <- 'Known'
 # combine results with est infectious period
 estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[1]))
 
-gdiagEst <- estE_i$gdiagAll
-postParamsEst <- estE_i$postParamsAll
-iddCurveEst <- estE_i$iddCurveAll
-r0Est <- estE_i$r0All
-mcmcEffEst <- estE_i$mcmcEffAll
-waicEst <- estE_i$waicAll
+gdiagEst <- estE_i$gdiag
+postParamsEst <- estE_i$paramsSummary
+iddCurveEst <- estE_i$iddSummary
+r0Est <- estE_i$r0Summary
+mcmcEffEst <- estE_i$mcmcEffSummary
+waicEst <- estE_i$waicSummary
 
 for (i in 2:length(batchFilesEst)) {
   estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[i]))
   
-  gdiagEst <-rbind.data.frame(gdiagEst, estE_i$gdiagAll)
-  postParamsEst <-rbind.data.frame(postParamsEst, estE_i$postParamsAll)
-  iddCurveEst <-rbind.data.frame(iddCurveEst, estE_i$iddCurveAll)
-  r0Est <-rbind.data.frame(r0Est, estE_i$r0All)
-  mcmcEffEst <-rbind.data.frame(mcmcEffEst, estE_i$mcmcEffAll)
-  waicEst <-rbind.data.frame(waicEst, estE_i$waicAll)
+  gdiagEst <-rbind.data.frame(gdiagEst, estE_i$gdiag)
+  postParamsEst <-rbind.data.frame(postParamsEst, estE_i$paramsSummary)
+  iddCurveEst <-rbind.data.frame(iddCurveEst, estE_i$iddSummary)
+  r0Est <-rbind.data.frame(r0Est, estE_i$r0Summary)
+  mcmcEffEst <-rbind.data.frame(mcmcEffEst, estE_i$mcmcEffSummary)
+  waicEst <-rbind.data.frame(waicEst, estE_i$waicSummary)
 }
 
 gdiagEst$EstarType <- 'Estimated'
@@ -131,7 +131,7 @@ iddLogitCurve <-  1 - exp(-exp(-1.77) * iddLogitCurve /N)
 pal <- c('magenta3', 'darkorange', 'green3')
 
 # bottom, left, top, and right.
-pdf('../figures/Figure1.pdf', height = 3.5, width = 9.5)
+pdf('../figures/sim_iddCurves_fig1.pdf', height = 3.5, width = 9.5)
 par(mfrow = c(1, 3), mar = c(5.1, 2.1, 4.1, 2.1))
 plot(1:maxInf, iddPeakCurve, ylab = '', yaxt = 'n', type = 'l',
      xlab = 'Days Infectious', cex.axis = 1.5, cex.main = 2, cex.lab = 2,
@@ -209,7 +209,7 @@ p2 <- ggplot(data = subset(iddCurveAll,
   scale_color_manual(values =pal) +
   theme(legend.position = "none")
 
-pdf('../figures/Figure3.pdf', height = 7, width = 10)
+pdf('../figures/sim_iddEst_fig2.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
              top = textGrob(expression('Posterior median estimates of '~pi[0]^(SE)),
                             gp = gpar(fontsize = 18, font = 2)))
@@ -248,7 +248,7 @@ p2 <- ggplot(data = subset(iddCurveAll,
   scale_color_manual(values =pal) +
   theme(legend.position = "none")
 
-pdf('../figures/Figure3.pdf', height = 7, width = 10)
+pdf('../figures/sim_iddEstSpline_fig3.pdf', height = 7, width = 10)
 grid.arrange(p1, p2,
              top = textGrob(expression('Posterior median estimates of '~pi[0]^(SE)),
                             gp = gpar(fontsize = 18, font = 2)))
@@ -439,17 +439,45 @@ ggplot(subset(r0Est, maxInf == 20), aes(x = time)) +
 ################################################################################
 # Supplemental Figure 2: Posterior means and 95% CIs for parameters
 
+postParamsEst$fitType <- postParamsEst$iddFun
+postParamsEst$fitType[postParamsEst$infPeriodSpec == 'exp'] <- 'exp'
+postParamsEst$fitType[postParamsEst$infPeriodSpec == 'PS'] <- 'PS'
+
+postParamsEst$fitType <- factor(postParamsEst$fitType, 
+                                levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
+                                labels = c('Exponential','Path-specific', 
+                                           'Gamma pdf', 'Log-normal pdf', 'Logistic Decay', 'Basis Spline'))
+
+
+# rename parameters to match manuscript 
+postParamsEst$param[postParamsEst$param == 'rateE'] <- 'rho'
+postParamsEst$param[postParamsEst$param == 'rateI'] <- 'gamma'
+
+postParamsEst$param[postParamsEst$param == 'shape' & 
+                      postParamsEst$fitType == 'Path-specific'] <- 'alpha_I'
+postParamsEst$param[postParamsEst$param == 'rate' & 
+                      postParamsEst$fitType == 'Path-specific'] <- 'beta_I'
+
+postParamsEst$param[postParamsEst$param == 'shape' & 
+                      postParamsEst$fitType == 'Gamma pdf'] <- 'alpha'
+postParamsEst$param[postParamsEst$param == 'rate' & 
+                      postParamsEst$fitType == 'Gamma pdf'] <- 'beta'
+
+postParamsEst$param[postParamsEst$param == 'mid'] <- 'w_0'
+postParamsEst$param[postParamsEst$param == 'rate' & 
+                      postParamsEst$fitType == 'Logistic Decay'] <- 'k'
+
 iddPeakParam <- data.frame(datGen = 'IDD_peak',
-                           param = c('beta1', 'beta2', 'rateE', 'shape', 'rate'),
+                           param = c('beta1', 'beta2', 'rho', 'alpha', 'beta'),
                            truth = c(0.25, -7, 0.2, 4, 1))
 iddExpParam <- data.frame(datGen = 'IDD_exp',
-                          param = c('beta1', 'beta2', 'rateE', 'shape', 'rate'),
+                          param = c('beta1', 'beta2', 'rho', 'alpha', 'beta'),
                           truth = c(0.4, -7, 0.2, 0.9, 0.3))
 iddLogitParam <- data.frame(datGen = 'IDD_logit',
-                            param = c('beta1', 'beta2', 'rateE', 'mid', 'rate'),
+                            param = c('beta1', 'beta2', 'rho', 'w_0', 'k'),
                             truth = c(-1.77, -7, 0.2, 8, 1.5))
 psParam <- data.frame(datGen = 'PS',
-                      param = c('beta1', 'beta2', 'rateE', 'shape', 'rate'),
+                      param = c('beta1', 'beta2', 'rateE', 'alpha_I', 'beta_I'),
                       truth = c(-1.77, -7, 0.2, 56, 7))
 
 trueParams <- rbind.data.frame(iddPeakParam, 
@@ -457,9 +485,20 @@ trueParams <- rbind.data.frame(iddPeakParam,
                                iddLogitParam, 
                                psParam)
 
+
 postParamsEst <- merge(postParamsEst, trueParams, 
                        by = c('datGen', 'param'),
                        all.x = T)
+
+postParamsEst$datGen <- factor(postParamsEst$datGen, 
+                               levels = c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'),
+                               labels = c('IDD Peak', 'IDD Exp', 'IDD Logit', 'PS'))
+
+postParamsEst$param <- factor(postParamsEst$param,
+                              levels = c('beta1', 'beta2', 'rho', 'gamma',
+                                         'alpha_I', 'beta_I', 'alpha', 'beta',
+                                         'meanlog', 'sdlog', 'k', 'w_0', 
+                                         'b1', 'b2', 'b3', 'b4', 'b5'))
 
 
 # IDD Gamma

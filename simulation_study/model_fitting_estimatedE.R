@@ -26,6 +26,10 @@ args <- commandArgs(trailingOnly=TRUE)
 idx <- gsub('\r', '', args)
 idx <- as.numeric(idx)
 
+if (file.exists(paste0('./batch_output/estimatedE_batch', idx, '.rds'))) {
+  stop('this already ran!')
+}
+
 ### load libraries
 library(parallel)
 library(coda)
@@ -85,199 +89,151 @@ S0 <- N - E0 - I0
 # intervention time
 tstar <- 120
 
-# fit IDD and exp models in batches of 5 (800 batches total)
-# fit PS models in batches of 2 (400 batches total)
-# each batch is one model/data generation scenario
-# Models are ordered
-if (idx <= 800) {
-  batchSize <- 5
+infPeriodSpec_i <- allModels$infPeriodSpec[idx]
+iddFun_i <- allModels$iddFun[idx]
+simNumber_i <- allModels$simNumber[idx]
+maxInf_i <- allModels$maxInf[idx]
+datGen_i <- allModels$datGen[idx]
+
+print(paste0('Model: ', infPeriodSpec_i,
+             ', IDD Fun: ', iddFun_i,
+             ', data gen: ', datGen_i,
+             ', max inf: ', maxInf_i,
+             ', sim number: ', simNumber_i))
+
+############################################################################
+### set up data
+
+# load data
+dat <- readRDS(paste0('data/', datGen_i, '_data.rds'))
+
+# extract data for simulation of interest
+Istar <- dat$Istar[,simNumber_i]
+
+# trim/add to Istar and Estar in the case of excess 0's
+# need maxInf days after last infection start
+fullTime <- length(Istar)
+lastInfTime <- max(which(Istar > 0))
+if (lastInfTime + maxInf_i + 1 <= fullTime) {
+  
+  newTime <- lastInfTime + maxInf_i  + 1
+  
+  Istar <- Istar[1:newTime]
+  
 } else {
   
-  # PS idx starts at 2001
-  batchSize <- 2
+  zerosAdd <- lastInfTime + maxInf_i  + 1 - fullTime
+  
+  Istar <- c(Istar, rep(0, zerosAdd))
+  newTime <- length(Istar)
+  
 }
 
+# design matrix for intervention
+X <- getX(newTime, tstar)
 
-batchIdx <- batchSize * (idx - 1) + 1:batchSize
+datList <- list(Istar = Istar,
+                S0 = S0,
+                E0 = E0,
+                I0 = I0,
+                N = N)
+
+############################################################################
+### set up priors and initial values
 
 
-for (i in batchIdx) {
+
+# run three chains in parallel
+cl <- makeCluster(3)
+clusterExport(cl, list('datList',  'X', 'infPeriodSpec_i', 'iddFun_i',
+                       'datGen_i', 'maxInf_i', 'idx'))
+
+resThree <- parLapplyLB(cl, 1:3, function(x) {
   
-  infPeriodSpec_i <- allModels$infPeriodSpec[i]
-  iddFun_i <- allModels$iddFun[i]
-  simNumber_i <- allModels$simNumber[i]
-  maxInf_i <- allModels$maxInf[i]
-  datGen_i <- allModels$datGen[i]
+  library(BayesSEIR)
+  library(splines)
   
-  print(paste0('Model: ', infPeriodSpec_i,
-               ', IDD Fun: ', iddFun_i,
-               ', data gen: ', datGen_i,
-               ', max inf: ', maxInf_i,
-               ', sim number: ', simNumber_i))
+  # MCMC specifications
+  # total number of iterations to be run
+  if (infPeriodSpec_i == 'exp') {
+    niter <- 1e6 
+  } else if (infPeriodSpec_i == 'PS') {
+    niter <- 5e5 
+  } else if (infPeriodSpec_i == 'IDD') {
+    niter <- 1.3e6 
+  } 
   
-  ############################################################################
-  ### set up data
+  # number of burn-in iterations to be discarded     
+  nburn <- 2e5
   
-  # load data
-  dat <- readRDS(paste0('data/', datGen_i, '_data.rds'))
+  # set seed for reproducibility of initial values
+  set.seed(x + idx)
   
-  # extract data for simulation of interest
-  Istar <- dat$Istar[,simNumber_i]
+  # get priors and initial values based on model/data generating scenario
+  source('get_priors_inits.R')
+  priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec_i, 
+                                  iddFun = iddFun_i, 
+                                  datGen = datGen_i, 
+                                  maxInf = maxInf_i) 
   
-  # trim/add to Istar and Estar in the case of excess 0's
-  # need maxInf days after last infection start
-  fullTime <- length(Istar)
-  lastInfTime <- max(which(Istar > 0))
-  if (lastInfTime + maxInf_i <= fullTime) {
+  initsList<- priorsInits$initsList 
+  priorList<- priorsInits$priorList 
+  
+  # set seed for reproducibility of chains
+  set.seed(x)
+  
+  # start timing for MCMC efficiency
+  startTime <- Sys.time()
+  
+  if (infPeriodSpec_i == 'exp') {
     
-    newTime <- lastInfTime + maxInf_i
+    res <-  mcmcSEIR(dat = datList, X = X, 
+                     inits = initsList, 
+                     niter = niter, nburn = nburn,
+                     infPeriodSpec = infPeriodSpec_i,
+                     priors = priorList,
+                     WAIC = TRUE)
     
-    Istar <- Istar[1:newTime]
+  } else if (infPeriodSpec_i == 'PS') {
     
-  } else {
+    res <- mcmcSEIR(dat = datList, X = X, 
+                    inits = initsList, 
+                    niter = niter, nburn = nburn,
+                    infPeriodSpec = infPeriodSpec_i,
+                    priors = priorList,
+                    dist = 'gamma', maxInf = maxInf_i,
+                    WAIC = TRUE)
     
-    zerosAdd <- lastInfTime + maxInf_i - fullTime
+  } else if (infPeriodSpec_i == 'IDD') {
     
-    Istar <- c(Istar, rep(0, zerosAdd))
-    newTime <- length(Istar)
-    
+    res <-  mcmcSEIR(dat = datList, X = X, 
+                     inits = initsList, 
+                     niter = niter, nburn = nburn,
+                     infPeriodSpec = infPeriodSpec_i,
+                     priors = priorList,
+                     iddFun = iddFun_i, maxInf = maxInf_i,
+                     WAIC = TRUE)
   }
   
-  # design matrix for intervention
-  X <- getX(newTime, tstar)
+  endTime <- Sys.time()
   
-  datList <- list(Istar = Istar,
-                  S0 = S0,
-                  E0 = E0,
-                  I0 = I0,
-                  N = N)
+  res$chainTime <- as.numeric(endTime - startTime, units = 'mins')
+  res
   
-  ############################################################################
-  ### set up priors and initial values
-  
-  
-  
-  # run three chains in parallel
-  cl <- makeCluster(3)
-  clusterExport(cl, list('datList',  'X', 'infPeriodSpec_i', 'iddFun_i',
-                         'datGen_i', 'maxInf_i', 'i'))
-  
-  resThree <- parLapplyLB(cl, 1:3, function(x) {
-    
-    library(BayesSEIR)
-    library(splines)
-    
-    # MCMC specifications
-    # total number of iterations to be run
-    if (infPeriodSpec_i == 'exp') {
-      niter <- 1e6 
-    } else if (infPeriodSpec_i == 'PS') {
-      niter <- 5e5 
-    } else if (infPeriodSpec_i == 'IDD') {
-      niter <- 1.3e6 
-    } 
-    
-    # number of burn-in iterations to be discarded     
-    nburn <- 1e5
-    
-    # set seed for reproducibility of initial values
-    set.seed(x + i)
-    
-    # get priors and initial values based on model/data generating scenario
-    source('get_priors_inits.R')
-    priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec_i, 
-                                    iddFun = iddFun_i, 
-                                    datGen = datGen_i, 
-                                    maxInf = maxInf_i) 
-    
-    initsList<- priorsInits$initsList 
-    priorList<- priorsInits$priorList 
-    
-    # set seed for reproducibility of chains
-    set.seed(x)
-    
-    # start timing for MCMC efficiency
-    startTime <- Sys.time()
-    
-    if (infPeriodSpec_i == 'exp') {
-      
-      res <-  mcmcSEIR(dat = datList, X = X, 
-                       inits = initsList, 
-                       niter = niter, nburn = nburn,
-                       infPeriodSpec = infPeriodSpec_i,
-                       priors = priorList,
-                       WAIC = TRUE)
-      
-    } else if (infPeriodSpec_i == 'PS') {
-      
-      res <- mcmcSEIR(dat = datList, X = X, 
-                      inits = initsList, 
-                      niter = niter, nburn = nburn,
-                      infPeriodSpec = infPeriodSpec_i,
-                      priors = priorList,
-                      dist = 'gamma', maxInf = maxInf_i,
-                      WAIC = TRUE)
-      
-    } else if (infPeriodSpec_i == 'IDD') {
-      
-      res <-  mcmcSEIR(dat = datList, X = X, 
-                       inits = initsList, 
-                       niter = niter, nburn = nburn,
-                       infPeriodSpec = infPeriodSpec_i,
-                       priors = priorList,
-                       iddFun = iddFun_i, maxInf = maxInf_i,
-                       WAIC = TRUE)
-    }
-    
-    endTime <- Sys.time()
-    
-    res$chainTime <- as.numeric(endTime - startTime, units = 'mins')
-    res
-    
-  })
-  stopCluster(cl)
-  
-  ############################################################################
-  # post processing of the model output
-  
-  postSummaries <- post_processing(modelOutput = resThree, EType = 'estimated',
-                                   infPeriodSpec = infPeriodSpec_i, 
-                                   datGen = datGen_i, iddFun = iddFun_i, 
-                                   simNumber = simNumber_i, maxInf = maxInf_i,
-                                   X = X, N = N)
-  
-  
-  # concatenate results across batches for output
-  if (i == batchIdx[1]) {
-    gdiagAll <- postSummaries$gdiag
-    postParamsAll <- postSummaries$paramsSummary
-    iddCurveAll <- postSummaries$iddSummary
-    r0All <- postSummaries$r0Summary
-    mcmcEffAll <- postSummaries$mcmcEffSummary
-    waicAll <- postSummaries$waicSummary
-    
-  } else {
-    gdiagAll <- rbind.data.frame(gdiagAll, postSummaries$gdiag)
-    postParamsAll <- rbind.data.frame(postParamsAll, postSummaries$paramsSummary)
-    iddCurveAll <- rbind.data.frame(iddCurveAll, postSummaries$iddSummary)
-    r0All <- rbind.data.frame(r0All, postSummaries$r0Summary)
-    mcmcEffAll <- rbind.data.frame(mcmcEffAll, postSummaries$mcmcEffSummary)
-    waicAll <- rbind.data.frame(waicAll, postSummaries$waicSummary)
-  }
-  
-  
-} # end loop
+})
+stopCluster(cl)
 
-# concatenate back to list to save output
-batchOutput <- list(gdiagAll = gdiagAll,
-                    postParamsAll = postParamsAll,
-                    iddCurveAll = iddCurveAll,
-                    r0All = r0All,
-                    mcmcEffAll = mcmcEffAll,
-                    waicAll = waicAll)
+############################################################################
+# post processing of the model output
+
+postSummaries <- post_processing(modelOutput = resThree, EType = 'estimated',
+                                 infPeriodSpec = infPeriodSpec_i, 
+                                 datGen = datGen_i, iddFun = iddFun_i, 
+                                 simNumber = simNumber_i, maxInf = maxInf_i,
+                                 X = X, N = N)
 
 # save output in RDS form
-saveRDS(batchOutput, paste0('./batch_output/estimatedE_batch', idx, '.rds'))
+saveRDS(postSummaries, paste0('./batch_output/estimatedE_batch', idx, '.rds'))
 
 
 

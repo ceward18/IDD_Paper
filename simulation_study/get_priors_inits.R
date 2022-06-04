@@ -124,7 +124,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
         priorList <- list(betaPrior = betaPrior,
                           rateEPrior = rateEPrior,
                           iddParamsPrior = iddParamsPrior)
-        browser()
+
         initsList <- list(beta = round(betaInit, 8), 
                           rateE = round(rateEInit, 8), 
                           iddParams = lapply(iddParamsInit, round, 8))

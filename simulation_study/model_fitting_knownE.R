@@ -103,16 +103,16 @@ for (i in batchIdx) {
     # trim/add to Istar and Estar in the case of excess 0's
     fullTime <- length(Istar)
     lastInfTime <- max(which(Istar > 0))
-    if (lastInfTime + maxInf_i <= fullTime) {
+    if (lastInfTime + maxInf_i + 1 <= fullTime) {
         
-        newTime <- lastInfTime + maxInf_i
+        newTime <- lastInfTime + maxInf_i + 1
         
         Istar <- Istar[1:newTime]
         Estar <- Estar[1:newTime]
         
     } else {
         
-        zerosAdd <- lastInfTime + maxInf_i - fullTime
+        zerosAdd <- lastInfTime + maxInf_i + 1 - fullTime
         
         Istar <- c(Istar, rep(0, zerosAdd))
         Estar <- c(Estar, rep(0, zerosAdd))
@@ -142,8 +142,8 @@ for (i in batchIdx) {
         library(splines)
         
         # MCMC specifications
-        niter <- 600000
-        nburn <- 500000
+        niter <- 1e6
+        nburn <- 2e5
         
         # set seed for reproducibility of initial values
         set.seed(clIdx + i)

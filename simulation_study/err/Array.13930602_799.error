@@ -1,5 +1,0 @@
-
- *** caught bus error ***
-address 0x7fd4339697c0, cause 'non-existent physical address'
-An irrecoverable exception occurred. R is aborting now ...
-/var/spool/slurmd/job14035251/slurm_script: line 23: 654099 Bus error               (core dumped) Rscript model_fitting_estimatedE.R $SLURM_ARRAY_TASK_ID
