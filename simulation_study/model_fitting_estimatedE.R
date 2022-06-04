@@ -114,15 +114,15 @@ Istar <- dat$Istar[,simNumber_i]
 # need maxInf days after last infection start
 fullTime <- length(Istar)
 lastInfTime <- max(which(Istar > 0))
-if (lastInfTime + maxInf_i + 1 <= fullTime) {
+if (lastInfTime + maxInf_i <= fullTime) {
   
-  newTime <- lastInfTime + maxInf_i  + 1
+  newTime <- lastInfTime + maxInf_i
   
   Istar <- Istar[1:newTime]
   
 } else {
   
-  zerosAdd <- lastInfTime + maxInf_i  + 1 - fullTime
+  zerosAdd <- lastInfTime + maxInf_i - fullTime
   
   Istar <- c(Istar, rep(0, zerosAdd))
   newTime <- length(Istar)
@@ -148,7 +148,7 @@ cl <- makeCluster(3)
 clusterExport(cl, list('datList',  'X', 'infPeriodSpec_i', 'iddFun_i',
                        'datGen_i', 'maxInf_i', 'idx'))
 
-resThree <- parLapplyLB(cl, 1:3, function(x) {
+resThree <- parLapplyLB(cl, X = 1:3, fun = function(clIdx) {
   
   library(BayesSEIR)
   library(splines)
@@ -166,8 +166,8 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
   # number of burn-in iterations to be discarded     
   nburn <- 2e5
   
-  # set seed for reproducibility of initial values
-  set.seed(x + idx)
+  # set seed for reproducibility
+  set.seed(clIdx + idx)
   
   # get priors and initial values based on model/data generating scenario
   source('get_priors_inits.R')
@@ -179,9 +179,6 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
   initsList<- priorsInits$initsList 
   priorList<- priorsInits$priorList 
   
-  # set seed for reproducibility of chains
-  set.seed(x)
-  
   # start timing for MCMC efficiency
   startTime <- Sys.time()
   
@@ -192,7 +189,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                      niter = niter, nburn = nburn,
                      infPeriodSpec = infPeriodSpec_i,
                      priors = priorList,
-                     WAIC = TRUE)
+                     WAIC = TRUE, seed = clIdx)
     
   } else if (infPeriodSpec_i == 'PS') {
     
@@ -202,7 +199,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                     infPeriodSpec = infPeriodSpec_i,
                     priors = priorList,
                     dist = 'gamma', maxInf = maxInf_i,
-                    WAIC = TRUE)
+                    WAIC = TRUE, seed = clIdx)
     
   } else if (infPeriodSpec_i == 'IDD') {
     
@@ -212,7 +209,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                      infPeriodSpec = infPeriodSpec_i,
                      priors = priorList,
                      iddFun = iddFun_i, maxInf = maxInf_i,
-                     WAIC = TRUE)
+                     WAIC = TRUE, seed = clIdx)
   }
   
   endTime <- Sys.time()

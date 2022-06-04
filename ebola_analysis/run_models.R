@@ -10,10 +10,8 @@
 ################################################################################
 
 args <- commandArgs(trailingOnly=TRUE)
-print(args)
 idx <- gsub('\r', '', args)
 idx <- as.numeric(idx)
-print(idx)
 
 ### load libraries
 library(BayesSEIR)
@@ -75,7 +73,7 @@ iddFun <- allModels$iddFun[idx]
 cl <- makeCluster(3)
 clusterExport(cl, list('ebolaDat',  'X', 'infPeriodSpec', 'iddFun', 'maxInf', 'idx'))
 
-resThree <- parLapplyLB(cl, 1:3, function(x) {
+resThree <- parLapplyLB(cl, X = 1:3, fun = function(clIdx) {
     
     library(BayesSEIR)
     library(splines)
@@ -87,7 +85,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
     # get priors and initial values based on model/data generating scenario
     
     # set seed for reproducibility
-    set.seed(x + idx)
+    set.seed(clIdx + idx)
     
     source('get_priors_inits.R')
     priorsInits <- get_priors_inits(infPeriodSpec = infPeriodSpec, 
@@ -97,9 +95,6 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
     initsList<- priorsInits$initsList 
     priorList<- priorsInits$priorList 
     
-    
-    set.seed(x)
-    
     if (infPeriodSpec == 'exp') {
         
         res <-  mcmcSEIR(dat = ebolaDat, X = X, 
@@ -107,7 +102,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                          niter = niter, nburn = nburn,
                          infPeriodSpec = infPeriodSpec,
                          priors = priorList,
-                         WAIC = TRUE)
+                         WAIC = TRUE, seed = clIdx)
         
     } else if (infPeriodSpec == 'PS') {
         
@@ -117,7 +112,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                         infPeriodSpec = infPeriodSpec,
                         priors = priorList,
                         dist = 'gamma', maxInf = maxInf,
-                        WAIC = TRUE)
+                        WAIC = TRUE, seed = clIdx)
         
     } else if (infPeriodSpec == 'IDD') {
         
@@ -127,7 +122,7 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
                          infPeriodSpec = infPeriodSpec,
                          priors = priorList,
                          iddFun = iddFun, maxInf = maxInf,
-                         WAIC = TRUE)
+                         WAIC = TRUE, seed = clIdx)
     }
     
     res

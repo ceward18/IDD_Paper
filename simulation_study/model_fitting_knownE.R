@@ -103,16 +103,16 @@ for (i in batchIdx) {
     # trim/add to Istar and Estar in the case of excess 0's
     fullTime <- length(Istar)
     lastInfTime <- max(which(Istar > 0))
-    if (lastInfTime + maxInf_i + 1 <= fullTime) {
+    if (lastInfTime + maxInf_i <= fullTime) {
         
-        newTime <- lastInfTime + maxInf_i + 1
+        newTime <- lastInfTime + maxInf_i 
         
         Istar <- Istar[1:newTime]
         Estar <- Estar[1:newTime]
         
     } else {
         
-        zerosAdd <- lastInfTime + maxInf_i + 1 - fullTime
+        zerosAdd <- lastInfTime + maxInf_i - fullTime
         
         Istar <- c(Istar, rep(0, zerosAdd))
         Estar <- c(Estar, rep(0, zerosAdd))
@@ -165,7 +165,7 @@ for (i in batchIdx) {
                              priors = priorList,
                              iddFun = iddFun_i, maxInf = maxInf_i,
                              EKnown = TRUE,
-                             WAIC = TRUE)
+                             WAIC = TRUE, seed = clIdx)
         
         list(fullPost = res$fullPost,
              waic = res$WAIC,
