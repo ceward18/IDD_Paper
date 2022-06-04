@@ -18,8 +18,8 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
     
     # beta and rateE initial values:
     # initial value on beta2 negative to reflect expected intervention effect
-    betaInit <- c(rnorm(1, 0, 4),
-                  runif(1, -10, 0))
+    betaInit <- c(rnorm(1, 0, 1),
+                  runif(1, -20, -10))
     
     rateEInit <- rgamma(1, 11, 100)
     
@@ -37,9 +37,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
                           rateEPrior = rateEPrior,
                           rateIPrior = rateIPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          rateI = rateIInit)
+        initsList <- list(beta = round(betaInit, 8), 
+                          rateE = round(rateEInit, 8), 
+                          rateI = round(rateIInit, 8))
         
     } else if (infPeriodSpec == 'PS') {
         # path-specific infectious period
@@ -56,9 +56,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
                           rateEPrior = rateEPrior,
                           psParamsPrior = psParamsPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          psParams = psParamsInit)
+        initsList <- list(beta = round(betaInit, 8), 
+                          rateE = round(rateEInit, 8), 
+                          psParams = lapply(psParamsInit, round, 8))
         
     } else if (infPeriodSpec == 'IDD') {
         # IDD transmissibility 
@@ -70,8 +70,8 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
                     dgamma(x['rate'], 1, 1, log = T)
             }
             
-            iddParamsInit = list(shape = rgamma(1, 1, 1),
-                                 rate = rgamma(1, 1, 1))
+            iddParamsInit = list(shape = runif(1, 0.2, 5),
+                                 rate = runif(1, 0.1, 2))
             
         } else if (iddFun == 'dlnormIDD') {
             
@@ -91,7 +91,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
             }
             
             iddParamsInit = list(mid = rnorm(1, 6, 1),
-                                 rate = rgamma(1, 1, 1))
+                                 rate = runif(1, 0.5, 2))
             
         } else if (iddFun == 'splineIDD') {
             
@@ -114,9 +114,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, maxInf) {
                           rateEPrior = rateEPrior,
                           iddParamsPrior = iddParamsPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          iddParams = iddParamsInit)
+        initsList <- list(beta = round(betaInit, 8), 
+                          rateE = round(rateEInit, 8), 
+                          iddParams = lapply(iddParamsInit, round, 8))
         
     }
     
