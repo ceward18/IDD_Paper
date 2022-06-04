@@ -58,7 +58,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
         
         initsList <- list(beta = round(betaInit, 9), 
                           rateE = round(rateEInit, 9), 
-                          psParams = round(psParamsInit, 9))
+                          psParams = lapply(psParamsInit, round, 9))
         
     } else if (infPeriodSpec == 'IDD') {
         # IDD transmissibility 
@@ -124,10 +124,10 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
         priorList <- list(betaPrior = betaPrior,
                           rateEPrior = rateEPrior,
                           iddParamsPrior = iddParamsPrior)
-        
+        browser()
         initsList <- list(beta = round(betaInit, 9), 
                           rateE = round(rateEInit, 9), 
-                          iddParams = round(iddParamsInit, 9))
+                          iddParams = lapply(iddParamsInit, round, 9))
         
     }
     
