@@ -37,9 +37,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
                           rateEPrior = rateEPrior,
                           rateIPrior = rateIPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          rateI = rateIInit)
+        initsList <- list(beta = round(betaInit, 9), 
+                          rateE = round(rateEInit, 9), 
+                          rateI = round(rateIInit, 9))
         
     } else if (infPeriodSpec == 'PS') {
         # path-specific infectious period
@@ -56,9 +56,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
                           rateEPrior = rateEPrior,
                           psParamsPrior = psParamsPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          psParams = psParamsInit)
+        initsList <- list(beta = round(betaInit, 9), 
+                          rateE = round(rateEInit, 9), 
+                          psParams = round(psParamsInit, 9))
         
     } else if (infPeriodSpec == 'IDD') {
         # IDD transmissibility 
@@ -125,9 +125,9 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
                           rateEPrior = rateEPrior,
                           iddParamsPrior = iddParamsPrior)
         
-        initsList <- list(beta = betaInit, 
-                          rateE = rateEInit, 
-                          iddParams = iddParamsInit)
+        initsList <- list(beta = round(betaInit, 9), 
+                          rateE = round(rateEInit, 9), 
+                          iddParams = round(iddParamsInit, 9))
         
     }
     
