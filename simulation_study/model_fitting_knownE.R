@@ -132,7 +132,7 @@ for (i in batchIdx) {
     
     ############################################################################
     ### run three chains in parallel
-    cl <- makeCluster(3)
+    cl <- makeCluster(3, outfile="")
     clusterExport(cl, list('datList',  'X', 'iddFun_i', 'datGen_i', 
                            'maxInf_i', 'i'))
     
@@ -164,14 +164,9 @@ for (i in batchIdx) {
                              infPeriodSpec = 'IDD',
                              priors = priorList,
                              iddFun = iddFun_i, maxInf = maxInf_i,
-                             EKnown = TRUE,
-                             WAIC = TRUE, seed = clIdx)
+                             EKnown = TRUE, seed = clIdx)
         
-        list(fullPost = res$fullPost,
-             waic = res$WAIC,
-             seed = clIdx + i,
-             initsList = initsList,
-             chain = clIdx)
+        list(fullPost = res)
     })
     stopCluster(cl)
     
