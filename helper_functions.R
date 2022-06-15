@@ -95,6 +95,10 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
         
         endTime <- Sys.time()
         
+        if (EKnown) {
+            res <- list(fullPost = res)
+        }
+        
         res$chainTime <- as.numeric(endTime - startTime, units = 'mins')
         res
         

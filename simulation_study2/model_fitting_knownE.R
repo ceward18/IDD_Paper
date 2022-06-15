@@ -135,7 +135,7 @@ for (i in batchIdx) {
     postSummaries <- runModels(datList = datList, X = X, infPeriodSpec_i = 'IDD', 
                                iddFun_i = iddFun_i, datGen_i = datGen_i, 
                                maxInf_i = maxInf_i, EType = 'known', i = i, 
-                               niter = 4e5)
+                               niter = 5e5)
     
     iddSummary <- postSummaries$iddSummary
     iddSummary$allConverge <- all(postSummaries$gdiag$gr < 1.1)
