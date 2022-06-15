@@ -118,6 +118,10 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
     if (allConverge) {
         return(postSummaries)
     } else {
+        # remove to save memory
+        rm(resThree)
+        
+        # rerun for 200,000 more iterations
         runModels(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
                   EType, i, niter = niter + 2e5)
     }
