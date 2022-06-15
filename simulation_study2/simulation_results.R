@@ -652,21 +652,6 @@ ggplot(subset(r0Est, maxInf == 20), aes(x = time, group = simNumber)) +
 dev.off()
 
 
-ggplot(r0Est, aes(x = time, group = simNumber)) + 
-    geom_line(data = subset(r0Est, maxInf == 20), 
-              mapping = aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(data = subset(r0Est, maxInf == 15), 
-              mapping = aes(y = mean), color =  adjustcolor('pink', alpha = 0.5)) +
-    geom_line(aes(y = truth, col = datGen), size = 1) +
-    facet_wrap(~datGen + fitType, nrow = 4) +
-    myTheme +
-    labs(x = 'Epidemic Time', y = expression(R[0](t)),
-         col = 'Data Generation\nScenario')  +
-    scale_color_manual(values =pal) +
-    ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
-    theme(legend.position = "none")
-
-
 ################################################################################
 # Supplemental Figure 2: Posterior means and 95% CIs for parameters
 

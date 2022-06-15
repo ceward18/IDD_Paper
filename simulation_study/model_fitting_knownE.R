@@ -142,7 +142,7 @@ for (i in batchIdx) {
         library(splines)
         
         # MCMC specifications
-        niter <- 1e6
+        niter <- 8e5
         nburn <- 2e5
         
         # set seed for reproducibility of initial values

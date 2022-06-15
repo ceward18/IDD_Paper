@@ -52,7 +52,7 @@ repeat {
                                          psParams = psParams,
                                          maxInf = maxInf))
     
-    # only keep realistic epidemics (> 250 cases lasting between 140 - 230 days)
+    # only keep realistic epidemics (> 250 cases lasting at least 140 days)
     numInf <- sum(sim_epi$Istar)
     epiLength <- max(which(sim_epi$Istar > 0))
     epiOver <- all(sim_epi$Istar[(tau-20):tau] == 0) 
