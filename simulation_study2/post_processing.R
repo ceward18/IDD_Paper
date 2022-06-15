@@ -168,7 +168,6 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     # MCMC Efficiency = ESS / computation time
     if (EType == 'estimated') {
         
-        
         # average time in minutes
         avgTime <- mean(c(modelOutput[[1]]$chainTime,
                           modelOutput[[2]]$chainTime,
@@ -176,7 +175,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         
         
         # one for each parameter
-        mcmcEff <- effectiveSize(res_mcmc) /  avgTime
+        mcmcEff <- effectiveSize(res_mcmc) / avgTime
         
         # R0 efficiency
         chainLength <- length(idxKeep)
@@ -184,7 +183,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
                                   mcmc(r0time[1,(chainLength + 1):(2 * chainLength)]),
                                   mcmc(r0time[1,(2 * chainLength + 1):(3 * chainLength)]))
         
-        mcmcEffR0 <- effectiveSize(r0_mcmc_list) /  avgTime
+        mcmcEffR0 <- effectiveSize(r0_mcmc_list) / avgTime
         
         mcmcEffSummary <- cbind.data.frame(modelSpecs, 
                                            data.frame(param = c(names(mcmcEff), 'R0'),

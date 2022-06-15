@@ -136,18 +136,31 @@ for (i in batchIdx) {
                                iddFun_i = iddFun_i, datGen_i = datGen_i, 
                                maxInf_i = maxInf_i, EType = 'known', i = i, 
                                niter = 5e5)
-    
-    iddSummary <- postSummaries$iddSummary
-    iddSummary$allConverge <- all(postSummaries$gdiag$gr < 1.1)
+
     
     # concatenate results across batches for output
     if (i == batchIdx[1]) {
-        batchOutput <- iddSummary
+        gdiag <- postSummaries$gdiag
+        paramsSummary <- postSummaries$paramsSummary
+        iddSummary <- postSummaries$iddSummary
+        r0Summary <- postSummaries$r0Summary
+        mcmcEffSummary <- postSummaries$mcmcEffSummary
     } else {
-        batchOutput <- rbind.data.frame(batchOutput, iddSummary)
+        gdiag <- rbind.data.frame(gdiag, postSummaries$gdiag)
+        paramsSummary <- rbind.data.frame(paramsSummary, postSummaries$paramsSummary)
+        iddSummary <- rbind.data.frame(iddSummary, postSummaries$iddSummary)
+        r0Summary <- rbind.data.frame(r0Summary, postSummaries$r0Summary)
+        mcmcEffSummary <- rbind.data.frame(mcmcEffSummary, postSummaries$mcmcEffSummary)
     }
     
 } # end loop
+
+# combine results back together
+batchOutput <- list(gdiag = gdiag,
+                    paramsSummary = paramsSummary,
+                    iddSummary = iddSummary,
+                    r0Summary = r0Summary,
+                    mcmcEffSummary = mcmcEffSummary)
 
 # save output in RDS form
 saveRDS(batchOutput, paste0('./batch_output/knownE_batch', idx, '.rds'))
