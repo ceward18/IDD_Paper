@@ -118,7 +118,8 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
     if (allConverge) {
         return(postSummaries)
     } else {
-        runModels(datList, X, iddFun_i, datGen_i, maxInf_i, i, niter = niter + 2e5)
+        runModels(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
+                  EType, i, niter = niter + 2e5)
     }
     
     
