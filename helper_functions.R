@@ -51,8 +51,10 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
         # WAIC only needs to be calculated for estimated exposure times
         if (EType == 'known') {
             waic <- FALSE
+            EKnown <- TRUE
         } else if (EType == 'estimated') {
             waic <- TRUE
+            EKnown <- FALSE
         }
         
         # start timing for MCMC efficiency
@@ -65,6 +67,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
                              niter = niter, nburn = nburn,
                              infPeriodSpec = infPeriodSpec_i,
                              priors = priorList,
+                             EKnown = EKnown,
                              WAIC = waic, seed = clIdx)
             
         } else if (infPeriodSpec_i == 'PS') {
@@ -75,6 +78,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
                             infPeriodSpec = infPeriodSpec_i,
                             priors = priorList,
                             dist = 'gamma', maxInf = maxInf_i,
+                            EKnown = EKnown,
                             WAIC = waic, seed = clIdx)
             
         } else if (infPeriodSpec_i == 'IDD') {
@@ -85,6 +89,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
                              infPeriodSpec = infPeriodSpec_i,
                              priors = priorList,
                              iddFun = iddFun_i, maxInf = maxInf_i,
+                             EKnown = EKnown,
                              WAIC = waic, seed = clIdx)
         }
         
