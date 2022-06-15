@@ -14,7 +14,16 @@
 
 post_processing <- function(modelOutput, EType, infPeriodSpec, 
                             datGen, iddFun, simNumber, maxInf,
-                            X, N) {
+                            X, N, niter) {
+    
+    # data frame of model specs to attach to each output type
+    modelSpecs <- data.frame(datGen = datGen,
+                             infPeriodSpec = infPeriodSpec,
+                             iddFun = iddFun,
+                             EType = EType,
+                             simNumber = simNumber,
+                             maxInf = maxInf,
+                             niter = niter)
     
     # thin to use only every 100th iteration
     nthin <- 100
@@ -37,12 +46,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     colnames(gdiag) <- c('gr', 'grUpper')
     gdiag$param <- rownames(gdiag)
     rownames(gdiag) <- NULL
-    gdiag <- cbind.data.frame(data.frame(datGen = datGen,
-                                         infPeriodSpec = infPeriodSpec,
-                                         iddFun = iddFun,
-                                         simNumber = simNumber,
-                                         maxInf = maxInf),
-                              gdiag)
+    gdiag <- cbind.data.frame(modelSpecs, gdiag)
     
     ############################################################################
     ### posterior mean and 95% CI for parameters
@@ -56,12 +60,7 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     rownames(paramsSummary) <- NULL
     
     
-    paramsSummary <- cbind.data.frame(data.frame(datGen = datGen,
-                                                 infPeriodSpec = infPeriodSpec,
-                                                 iddFun = iddFun,
-                                                 simNumber = simNumber,
-                                                 maxInf = maxInf),
-                                      paramsSummary)
+    paramsSummary <- cbind.data.frame(modelSpecs, paramsSummary)
     
     
     ############################################################################
@@ -97,25 +96,21 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         curveMedian <- apply(p0SE, 1, median)
         curveCI <- apply(p0SE, 1, quantile, probs = c(0.025, 0.975))
         
-        iddSummary <- data.frame(datGen = datGen,
-                                 infPeriodSpec = infPeriodSpec,
-                                 iddFun = iddFun,
-                                 simNumber = simNumber,
-                                 maxInf = maxInf,
-                                 infDay = 1:maxInf,
-                                 median = curveMedian,
-                                 lower = curveCI[1,],
-                                 upper = curveCI[2,])
+        iddSummary <- cbind.data.frame(modelSpecs, 
+                                       data.frame(infDay = 1:maxInf,
+                                                  median = curveMedian,
+                                                  lower = curveCI[1,],
+                                                  upper = curveCI[2,]))
+        
     } else {
-        iddSummary <- data.frame(datGen = NA,
-                                 infPeriodSpec = NA,
-                                 iddFun = NA,
-                                 simNumber = NA,
-                                 maxInf = NA,
-                                 infDay = NA,
-                                 median = NA,
-                                 lower = NA,
-                                 upper = NA)
+        
+        
+        iddSummary <- cbind.data.frame(modelSpecs, 
+                                       data.frame(infDay = NA,
+                                                  median = NA,
+                                                  lower = NA,
+                                                  upper = NA))
+        
     }
     
     ############################################################################
@@ -162,15 +157,11 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
     r0Mean <- apply(r0time, 1, mean)
     r0CI <- apply(r0time, 1, quantile, probs = c(0.025, 0.975))
     
-    r0Summary <- data.frame(datGen = datGen,
-                            infPeriodSpec = infPeriodSpec,
-                            iddFun = iddFun,
-                            simNumber = simNumber,
-                            maxInf = maxInf,
-                            time = 1:length(r0Mean),
-                            mean = r0Mean,
-                            lower = r0CI[1,],
-                            upper = r0CI[2,])
+    r0Summary <- cbind.data.frame(modelSpecs, 
+                                  data.frame(time = 1:length(r0Mean),
+                                             mean = r0Mean,
+                                             lower = r0CI[1,],
+                                             upper = r0CI[2,]))
     
     
     ############################################################################
@@ -195,23 +186,15 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
         
         mcmcEffR0 <- effectiveSize(r0_mcmc_list) /  avgTime
         
-        mcmcEffSummary <- data.frame(datGen = datGen,
-                                     infPeriodSpec = infPeriodSpec,
-                                     iddFun = iddFun,
-                                     simNumber = simNumber,
-                                     maxInf = maxInf,
-                                     param = c(names(mcmcEff), 'R0'),
-                                     eff = c(mcmcEff, mcmcEffR0))
+        mcmcEffSummary <- cbind.data.frame(modelSpecs, 
+                                           data.frame(param = c(names(mcmcEff), 'R0'),
+                                                      eff = c(mcmcEff, mcmcEffR0)))
         
         
     } else {
-        mcmcEffSummary <- data.frame(datGen = NA,
-                                     infPeriodSpec = NA,
-                                     iddFun = NA,
-                                     simNumber = NA,
-                                     maxInf = NA,
-                                     param = NA,
-                                     eff = NA)
+        mcmcEffSummary <- cbind.data.frame(modelSpecs,
+                                           data.frame(param = NA,
+                                                      eff = NA))
         
     }
     
@@ -226,21 +209,12 @@ post_processing <- function(modelOutput, EType, infPeriodSpec,
                           modelOutput[[3]]$WAIC))
         
         
-        waicSummary <- data.frame(datGen = datGen,
-                                  infPeriodSpec = infPeriodSpec,
-                                  iddFun = iddFun,
-                                  simNumber = simNumber,
-                                  maxInf = maxInf,
-                                  waic = avgWAIC)
+        waicSummary <- cbind.data.frame(modelSpecs, data.frame(waic = avgWAIC))
         
         
     } else {
-        waicSummary <- data.frame(datGen = NA,
-                                  infPeriodSpec = NA,
-                                  iddFun = NA,
-                                  simNumber = NA,
-                                  maxInf = NA,
-                                  waic = NA)
+        
+        waicSummary <- cbind.data.frame(modelSpecs, data.frame(waic = NA))
         
     }
     

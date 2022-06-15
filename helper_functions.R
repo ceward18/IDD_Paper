@@ -110,7 +110,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
                                      infPeriodSpec = infPeriodSpec_i, 
                                      datGen = datGen_i, iddFun = iddFun_i, 
                                      simNumber = simNumber_i, maxInf = maxInf_i,
-                                     X = X, N = N)
+                                     X = X, N = N, niter = niter)
     
     
     allConverge <- all(postSummaries$gdiag$gr < 1.1)
@@ -119,7 +119,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
         return(postSummaries)
     } else {
         # remove to save memory
-        rm(resThree)
+        rm(resThree, postSummaries)
         
         # rerun for 200,000 more iterations
         runModels(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
