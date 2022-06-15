@@ -106,7 +106,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
     stopCluster(cl)
     
     ### post processing to get Gelman-Rubin and other summaries of interest
-    postSummaries <- post_processing(modelOutput = resThree, EType = EType_i,
+    postSummaries <- post_processing(modelOutput = resThree, EType = EType,
                                      infPeriodSpec = infPeriodSpec_i, 
                                      datGen = datGen_i, iddFun = iddFun_i, 
                                      simNumber = simNumber_i, maxInf = maxInf_i,
