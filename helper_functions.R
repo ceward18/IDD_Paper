@@ -19,6 +19,7 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
     
     assign('infPeriodSpec_i', infPeriodSpec_i, envir = .GlobalEnv)
     assign('EType', EType, envir = .GlobalEnv)
+    assign('i', niter, envir = .GlobalEnv)
     assign('niter', niter, envir = .GlobalEnv)
     
     print(paste0('Attempting niter = ', niter))
