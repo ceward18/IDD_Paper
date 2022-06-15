@@ -19,6 +19,11 @@ args <- commandArgs(trailingOnly=TRUE)
 idx <- gsub('\r', '', args)
 idx <- as.numeric(idx)
 
+
+if (file.exists(paste0('./batch_output/knownE_batch', idx, '.rds'))) {
+    stop('this already ran!')
+}
+
 ### load libraries
 library(parallel)
 library(coda)
