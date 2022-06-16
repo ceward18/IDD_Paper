@@ -54,24 +54,30 @@ batchFiles <- list.files('./batch_output/')
 batchFilesKnown <- batchFiles[grep('knownE', batchFiles)]
 batchFilesEst <- batchFiles[grep('estimatedE', batchFiles)]
 
+# allBatchFiles <- paste0("estimatedE_batch", 1:4400, ".rds")
+# allBatchFiles[!allBatchFiles %in% batchFilesEst]
 
 # combine results with known infectious period
-iddCurveKnown <- readRDS(paste0('./batch_output/', batchFilesKnown[1]))
-iddCurveKnown$infPeriodSpec <- 'IDD'
+knownE_i <- readRDS(paste0('./batch_output/', batchFilesKnown[1]))
+
+gdiagKnown <- knownE_i$gdiag
+postParamsKnown <- knownE_i$paramsSummary
+iddCurveKnown <- knownE_i$iddSummary
+r0Known <- knownE_i$r0Summary
+mcmcEffKnown <- knownE_i$mcmcEffSummary
 
 for (i in 2:length(batchFilesKnown)) {
     knownE_i <- readRDS(paste0('./batch_output/', batchFilesKnown[i]))
     
-    if (i %in% c(2, 9:16)) {
-        knownE_i$infPeriodSpec <- 'IDD'
-    }
-    
-    iddCurveKnown <-rbind.data.frame(iddCurveKnown, knownE_i)
+    gdiagKnown <-rbind.data.frame(gdiagKnown, knownE_i$gdiag)
+    postParamsKnown <-rbind.data.frame(postParamsKnown, knownE_i$paramsSummary)
+    iddCurveKnown <-rbind.data.frame(iddCurveKnown, knownE_i$iddSummary)
+    r0Known <-rbind.data.frame(r0Known, knownE_i$r0Summary)
+    mcmcEffKnown <-rbind.data.frame(mcmcEffKnown, knownE_i$mcmcEffSummary)
 }
 
-iddCurveKnown$EstarType <- 'Known'
 
-# combine results with est infectious period
+# combine results with estimated infectious period
 estE_i <- readRDS(paste0('./batch_output/', batchFilesEst[1]))
 
 gdiagEst <- estE_i$gdiag
@@ -92,48 +98,18 @@ for (i in 2:length(batchFilesEst)) {
     waicEst <-rbind.data.frame(waicEst, estE_i$waicSummary)
 }
 
-gdiagEst$EstarType <- 'Estimated'
-postParamsEst$EstarType <- 'Estimated'
-iddCurveEst$EstarType <- 'Estimated'
-r0Est$EstarType <- 'Estimated'
-mcmcEffEst$EstarType <- 'Estimated'
-waicEst$EstarType <- 'Estimated'
 
 # combine IDD Curves
-iddCurveAll <- rbind.data.frame(
-    iddCurveKnown[-which(colnames(iddCurveKnown) == 'allConverge')], 
-    iddCurveEst)
+iddCurveAll <- rbind.data.frame(iddCurveKnown, iddCurveEst)
 
 ################################################################################
-# Check convergence
+# Double check convergence 
 
-# known infectious period
-notConvergeKnown <- iddCurveKnown[!iddCurveKnown$allConverge,]
-notConvergeKnown <- notConvergeKnown[notConvergeKnown$infDay == 1,]
+# known infectious period (should be 0)
+sum(gdiagKnown[gdiagKnown$gr > 1.1,])
 
-table(notConvergeKnown$iddFun, notConvergeKnown$datGen, notConvergeKnown$maxInf)
-
-# estimated infectious period
-notConvergeEst <- gdiagEst[gdiagEst$gr > 1.1,]
-notConvergeModels <-  notConvergeEst[
-    !duplicated(notConvergeEst
-                [,-which(colnames(notConvergeEst) %in% 
-                             c('gr', 'grUpper', 'param'))]),
-    c('datGen', 'infPeriodSpec', 'iddFun', 'simNumber', 'maxInf')]
-
-
-with(subset(notConvergeModels, maxInf == 15 & infPeriodSpec == 'IDD'),
-     table(datGen, iddFun))
-
-with(subset(notConvergeModels, maxInf == 20 & infPeriodSpec == 'IDD'),
-     table(datGen, iddFun))
-
-with(subset(notConvergeModels, infPeriodSpec == 'exp'),
-     table(datGen, maxInf))
-
-with(subset(notConvergeModels, infPeriodSpec == 'PS'),
-     table(datGen, maxInf))
-
+# estimated infectious period (should be 0)
+sum(gdiagEst[gdiagEst$gr > 1.1,])
 
 ################################################################################
 ### Figure 1: IDD transmissibility curves used in the simulation
@@ -155,7 +131,7 @@ iddLogitCurve <-  1 - exp(-exp(-1.77) * iddLogitCurve /N)
 pal <- c('magenta3', 'darkorange', 'green3')
 
 # bottom, left, top, and right.
-pdf('../figures/sim_iddCurves_fig1.pdf', height = 3.5, width = 9.5)
+# pdf('../figures/sim_iddCurves_fig1.pdf', height = 3.5, width = 9.5)
 par(mfrow = c(1, 3), mar = c(5.1, 2.1, 4.1, 2.1))
 plot(1:maxInf, iddPeakCurve, ylab = '', yaxt = 'n', type = 'l',
      xlab = 'Days Infectious', cex.axis = 1.5, cex.main = 2, cex.lab = 2,
@@ -168,7 +144,7 @@ plot(1:maxInf, iddExpCurve, ylab = '', yaxt = 'n', type = 'l',
 plot(1:maxInf, iddLogitCurve, ylab = '', yaxt = 'n', type = 'l',
      xlab = 'Days Infectious', cex.axis = 1.5, cex.main = 2, cex.lab = 2,
      main = 'IDD Logit', lwd = 3, col = pal[3])
-dev.off()
+# dev.off()
 
 
 ################################################################################
@@ -185,37 +161,42 @@ iddCurveAllSub <- merge(subset(iddCurveAll, datGen != 'PS'),
 iddCurveAllSub$iddCurveTruth[iddCurveAllSub$infDay > 15] <- 0
 
 
-iddCurveAllSub$iddFun <- factor(iddCurveAllSub$iddFun,
-                                levels = c('dgammaIDD', 'dlnormIDD',
-                                           'logitIDD',  'splineIDD'),
-                                labels = c('Gamma pdf', 'Log-normal pdf', 
-                                           'Logistic Decay', 'Basis Spline'))
+iddCurveAllSub$iddFunLab <- factor(iddCurveAllSub$iddFun,
+                                   levels = c('dgammaIDD', 'dlnormIDD',
+                                              'logitIDD',  'splineIDD'),
+                                   labels = paste0('Model: ',
+                                                   c('Gamma pdf', 'Log-normal pdf', 
+                                                     'Logistic Decay', 'Basis Spline')))
 
-iddCurveAllSub$datGen <- factor(iddCurveAllSub$datGen,
-                                levels = c('IDD_peak', 'IDD_exp', 'IDD_logit'),
-                                labels = c('IDD Peak', 'IDD Exp', 'IDD Logit'))
+iddCurveAllSub$datGenLab <- factor(iddCurveAllSub$datGen,
+                                   levels = c('IDD_peak', 'IDD_exp',
+                                              'IDD_logit', 'PS'),
+                                   labels = paste0('Data: ',
+                                                   c('IDD Peak', 'IDD Exp',
+                                                     'IDD Logit', 'Path-specific')))
+
 
 # when exposure times are estimated, we only care about certain scenarios for
 # estimating IDD curves
 
-iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD Peak' &
-                                            iddCurveAllSub$iddFun == 'Logistic Decay'),]
-iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD Exp' & 
-                                            iddCurveAllSub$iddFun == 'Logistic Decay'),]
-iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD Logit' & 
+iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD_peak' &
+                                            iddCurveAllSub$iddFun == 'logitIDD'),]
+iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD_exp' & 
+                                            iddCurveAllSub$iddFun == 'logitIDD'),]
+iddCurveAllSub <- iddCurveAllSub[-which(iddCurveAllSub$datGen == 'IDD_logit' & 
                                             iddCurveAllSub$iddFun %in% 
-                                            c('Gamma pdf', 'Log-normal pdf')),]
+                                            c('dgammaIDD', 'dlnormIDD')),]
 
 pal <- c('magenta3', 'darkorange', 'green3')
 
 p1 <- ggplot(data = subset(iddCurveAllSub, 
-                           iddFun != 'Basis Spline' & 
-                               EstarType == 'Known' & 
+                           iddFun != 'splineIDD' & 
+                               EType == 'known' & 
                                maxInf == 20)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
     geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
+    facet_wrap(~datGenLab + iddFunLab, nrow = 1) + 
     myTheme +
     labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
          title = 'Known Exposure Times')  +
@@ -223,20 +204,20 @@ p1 <- ggplot(data = subset(iddCurveAllSub,
     theme(legend.position = "none")
 
 p2 <- ggplot(data = subset(iddCurveAllSub, 
-                           iddFun != 'Basis Spline' & 
-                               EstarType == 'Estimated' & 
+                           iddFun != 'splineIDD' & 
+                               EType == 'estimated' & 
                                maxInf == 20)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
     geom_line(aes(x = infDay, y = iddCurveTruth, col = datGen), size = 1) +
-    facet_wrap(~datGen+iddFun, nrow = 1) + 
+    facet_wrap(~datGenLab + iddFunLab, nrow = 1) + 
     myTheme +
     labs(x = 'Days Infectious', y = expression(pi[0]^"(SE)"),
          title = 'Estimated Exposure Times')  +
     scale_color_manual(values =pal) +
     theme(legend.position = "none")
 
-pdf('../figures/sim_iddEst_fig2.pdf', height = 7, width = 10)
+pdf('../figures/sim_iddEst_fig2.pdf', height = 7, width = 12.5)
 grid.arrange(p1, p2,
              top = textGrob(expression('Posterior median estimates of '~pi[0]^(SE)),
                             gp = gpar(fontsize = 18, font = 2)))
@@ -248,8 +229,8 @@ dev.off()
 
 
 p1 <- ggplot(data = subset(iddCurveAllSub, 
-                           iddFun == 'Basis Spline' & 
-                               EstarType == 'Known' & 
+                           iddFun == 'splineIDD' & 
+                               EType == 'known' & 
                                maxInf == 20)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
@@ -262,8 +243,8 @@ p1 <- ggplot(data = subset(iddCurveAllSub,
     theme(legend.position = "none")
 
 p2 <- ggplot(data = subset(iddCurveAllSub, 
-                           iddFun == 'Basis Spline' & 
-                               EstarType == 'Estimated' & 
+                           iddFun == 'splineIDD' & 
+                               EType == 'estimated' & 
                                maxInf == 20)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
@@ -292,27 +273,27 @@ iddCurveAllSub <- merge(iddCurveAll,
 
 iddCurveAllSub$iddCurveTruth[iddCurveAllSub$infDay > 15 & 
                                  iddCurveAllSub$datGen != 'PS'] <- 0
-iddCurveAllSub <- subset(iddCurveAllSub, EstarType == 'Estimated')
-
+iddCurveAllSub <- subset(iddCurveAllSub, EType == 'estimated')
+iddCurveAllSub <- subset(iddCurveAllSub, infPeriodSpec == 'IDD')
 
 iddCurveAllSub$iddFun <- factor(iddCurveAllSub$iddFun,
                                 levels = c('dgammaIDD', 'dlnormIDD',
                                            'logitIDD',  'splineIDD'),
-                                labels = c('Gamma pdf', 'Log-normal pdf', 
-                                           'Logistic Decay', 'Basis Spline'))
+                                labels = paste0('Model: ',
+                                                c('Gamma pdf', 'Log-normal pdf', 
+                                                  'Logistic Decay', 'Basis Spline')))
 
 iddCurveAllSub$datGen <- factor(iddCurveAllSub$datGen,
                                 levels = c('IDD_peak', 'IDD_exp',
                                            'IDD_logit', 'PS'),
-                                labels = c('IDD Peak', 'IDD Exp',
-                                           'IDD Logit', 'Path-specific'))
-
+                                labels = paste0('Data: ',
+                                                c('IDD Peak', 'IDD Exp',
+                                                  'IDD Logit', 'Path-specific')))
 
 pal <- c('magenta3', 'darkorange', 'green3', 'black')
 
 
-
-pdf('../figures/sim_iddEst15_suppfig1.pdf', height = 7, width = 10)
+pdf('../figures/sim_iddEst15_suppfig1.pdf', height = 9, width = 10)
 ggplot(data = subset(iddCurveAllSub, maxInf == 15)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
@@ -325,7 +306,7 @@ ggplot(data = subset(iddCurveAllSub, maxInf == 15)) +
     theme(legend.position = "none")
 dev.off()
 
-pdf('../figures/sim_iddEst20_suppfig2.pdf', height = 7, width = 10)
+pdf('../figures/sim_iddEst20_suppfig2.pdf', height = 9, width = 10)
 ggplot(data = subset(iddCurveAllSub, maxInf == 20)) +
     geom_line(aes(x = infDay, y = median, group = simNumber),
               color =  adjustcolor('grey', alpha = 0.5)) +
@@ -347,6 +328,11 @@ N <- 5363500
 fullX <- getX(250, 120)
 
 # get true R0's
+iddPSR0 <- getR0(infPeriodSpec = 'PS', 
+                 beta = c(-1.77, -7), X = fullX, N = N,
+                 infPSParams = list(dist = 'gamma',
+                                    psParams = list(shape = 56, rate = 7),
+                                    maxInf = maxInf))
 iddPeakR0 <- getR0(infPeriodSpec = 'IDD', 
                    beta = c(0.25, -7), X = fullX, N = N,
                    infIDDParams = list(iddFun = dgammaIDD,
@@ -365,21 +351,16 @@ iddLogitR0 <- getR0(infPeriodSpec = 'IDD',
                                         iddParams = list(mid = 8, rate = 1.5),
                                         maxInf = maxInf))
 
-iddPSR0 <- getR0(infPeriodSpec = 'PS', 
-                 beta = c(-1.77, -7), X = fullX, N = N,
-                 infPSParams = list(dist = 'gamma',
-                                    psParams = list(shape = 56, rate = 7),
-                                    maxInf = maxInf))
 
-trueR0 <- data.frame(datGen = rep(c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'), 
+trueR0 <- data.frame(datGen = rep(c('PS', 'IDD_peak', 'IDD_exp', 'IDD_logit'), 
                                   each = 250),
                      time = 1:250,
-                     truth = c(iddPeakR0, iddExpR0, iddLogitR0, iddPSR0))
+                     truth = c(iddPSR0, iddPeakR0, iddExpR0, iddLogitR0))
 
 # merge estimates with truth
-r0Est <- merge(r0Est, trueR0, by = c('datGen', 'time'), all.x = T)
+r0EstTrue <- merge(r0Est, trueR0, by = c('datGen', 'time'), all.x = T)
 
-r0MSE <- ddply(subset(r0Est, time == 1), .(datGen, infPeriodSpec, iddFun, maxInf),
+r0MSE <- ddply(subset(r0EstTrue, time == 1), .(datGen, infPeriodSpec, iddFun, maxInf),
                summarize,
                mse = mean((mean-truth)^2))
 
@@ -388,6 +369,12 @@ r0MSE$fitType <- r0MSE$iddFun
 r0MSE$fitType[r0MSE$infPeriodSpec == 'exp'] <- 'exp'
 r0MSE$fitType[r0MSE$infPeriodSpec == 'PS'] <- 'PS'
 
+# replicate exponential for maxInf of 15 as maxInf does not impact exponential
+r0MSEExp <- r0MSE[r0MSE$fitType == 'exp',]
+r0MSEExp$maxInf <- 15
+r0MSE <- rbind.data.frame(r0MSE, r0MSEExp)
+
+# format for plotting labels
 r0MSE$fitType <- factor(r0MSE$fitType, 
                         levels = c('dlnormIDD', 'dgammaIDD',
                                    'logitIDD', 'exp', 
@@ -398,24 +385,6 @@ r0MSE$fitType <- factor(r0MSE$fitType,
                                    expression(Exponential),
                                    expression(`Path-specific`), 
                                    expression(Basis~Spline^"\206")))
-
-
-pal <- brewer.pal(6, 'Dark2')
-pal <- pal[c(1:3, 6, 4:5)]
-
-makeFootnote <- function(footnoteText,
-                         size = .7, color = grey(.5),
-                         xunit=0.85, yunit = 35) {
-    require(grid)
-    pushViewport(viewport())
-    grid.text(label = footnoteText ,
-              x = unit(xunit,"npc"),
-              y = unit(yunit, "mm"),
-              just = c("left", "bottom"),
-              gp = gpar(cex = size, col = color))
-    
-    popViewport()
-}
 
 r0MSE$datGen <- factor(r0MSE$datGen,
                        levels = c('IDD_peak', 'IDD_exp', 
@@ -428,7 +397,12 @@ maxInfLabs <- c('15-day infectious period',
 names(maxInfLabs) <- c('15', '20')
 r0MSE$maxInf <- as.character(r0MSE$maxInf)
 
-pdf('../figures/sim_r0_mse_fig4.pdf', height = 8, width = 10)
+
+pal <- brewer.pal(6, 'Dark2')
+pal <- pal[c(1:3, 6, 4:5)]
+
+
+pdf('../figures/sim_r0_mse_fig4.pdf', height = 6, width = 7.5)
 ggplot(data = r0MSE, 
        aes(x = datGen, y = mse, fill = fitType, group = fitType)) +
     geom_bar(position="dodge", stat="identity", col = 'black', size = 0.2) +
@@ -437,63 +411,141 @@ ggplot(data = r0MSE,
     scale_fill_manual(values=pal, labels = parse_format()) +
     myTheme +
     labs(title = expression('MSE of'~ R[0]),
-         fill = 'Modeling Approach', y = 'MSE', x = 'Data Type') +
+         fill = 'Modeling Approach        ',
+         y = 'MSE', x = 'Data Type') +
     theme(legend.text.align = 0)
 makeFootnote(expression("\206"), 
-             color = "black", size=1, xunit = 0.805, yunit = 55)
-makeFootnote("models fit using the\nproposed IDD\ntransmissibility approach", 
-             color = "black", size=1, xunit = 0.817, yunit = 42)
+             color = "black", size=1, xunit = 0.687, yunit = 34.2)
+makeFootnote("models fit using the proposed\nIDD transmissibility approach", 
+             color = "black", size=1, xunit = 0.702, yunit = 27)
 dev.off()
 
 
+################################################################################
+# Supplemental Figure 3,4: Posterior mean R0(t) compared to truth 
 
-tmp <- r0MSE
-tmp$fitType <- tmp$iddFun
-tmp$fitType[tmp$infPeriodSpec == 'exp'] <- 'exp'
-tmp$fitType[tmp$infPeriodSpec == 'PS'] <- 'PS'
+r0EstFull <- r0EstTrue
 
-tmp$newGroup <- interaction(tmp$fitType, tmp$maxInf)
-tmp$newGroup <- factor(tmp$newGroup, 
-                       levels = c("dlnormIDD.15", "dlnormIDD.20",
-                                  "dgammaIDD.15", "dgammaIDD.20", 
-                                  "logitIDD.15", "logitIDD.20",
-                                  "exp.15", "exp.20" , 
-                                  "splineIDD.15", "splineIDD.20",
-                                  "PS.15", "PS.20"),
-                       labels = c(expression(`Log-normal`~Pdf^"\206"~`15 days`),
-                                  expression(`Log-normal`~Pdf^"\206"~`20 days`),
-                                  expression("Gamma"~Pdf^"\206"~`15 days`), 
-                                  expression("Gamma"~Pdf^"\206"~`20 days`), 
-                                  expression(Logistic~Decay^"\206"~`15 days`),
-                                  expression(Logistic~Decay^"\206"~`20 days`),
-                                  expression(Exponential~`15 days`),
-                                  expression(Exponential~`20 days`),
-                                  expression(Basis~Spline^"\206"~`15 days`),
-                                  expression(Basis~Spline^"\206"~`20 days`),
-                                  expression(`Path-specific`~`15 days`),
-                                  expression(`Path-specific`~`20 days`)))
+r0EstFull$fitType <- r0EstFull$iddFun
+r0EstFull$fitType[r0EstFull$infPeriodSpec == 'exp'] <- 'exp'
+r0EstFull$fitType[r0EstFull$infPeriodSpec == 'PS'] <- 'PS'
 
-pal <- c(brewer.pal(6, 'Set2'),
-         brewer.pal(6, 'Dark2'))
+# replicate exponential for maxInf of 15 as maxInf does not impact exponential
+r0EstFullExp <- r0EstFull[r0EstFull$fitType == 'exp',]
+r0EstFullExp$maxInf <- 15
+r0EstFull <- rbind.data.frame(r0EstFull, r0EstFullExp)
 
-pal <- pal[c(1, 7, 2, 8, 3, 9, 6, 12, 4, 10, 5, 11)]
+r0EstFull$datGen <- factor(r0EstFull$datGen, 
+                           levels = c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'),
+                           labels = paste0('Data: ',
+                                           c('IDD Peak', 'IDD Exp', 
+                                             'IDD Logit', 'PS')))
+
+r0EstFull$fitType <- factor(r0EstFull$fitType, 
+                            levels = c('exp', 'PS', 'dgammaIDD', 
+                                       'dlnormIDD', 'logitIDD', 'splineIDD'),
+                            labels = paste0('Model: ', 
+                                            c('Exponential','Path-specific', 
+                                              'Gamma Pdf', 'Log-normal Pdf', 
+                                              'Logistic Decay', 'Basis Spline')))
 
 
-pdf('../figures/sim_r0_mse_fig4_tmp.pdf', height = 6, width = 12)
-ggplot(data = tmp, 
-       aes(x = datGen, y = mse, fill = newGroup)) +
-    geom_bar(position="dodge", stat="identity", col = 'black', size = 0.2) +
-    # facet_wrap(~maxInf, nrow =1,
-    #            labeller = labeller(maxInf = maxInfLabs)) +
-    scale_fill_manual(values=pal, labels = parse_format()) +
+pal <- c('magenta3', 'darkorange', 'green3', 'royalblue2')
+
+
+pdf('../figures/sim_r0_est15_suppfig3.pdf', height = 9, width = 14)
+ggplot(subset(r0EstFull, maxInf == 15), aes(x = time, group = simNumber)) + 
+    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
+    geom_line(aes(y = truth, col = datGen), size = 1) +
+    facet_wrap(~datGen + fitType, nrow = 4) +
     myTheme +
-    labs(title = expression('MSE of'~ R[0]),
-         fill = 'Modeling Approach', y = 'MSE', x = 'Data Type') +
-    theme(legend.text.align = 0)
+    labs(x = 'Epidemic Time', y = expression(R[0](t)),
+         col = 'Data Generation\nScenario')  +
+    scale_color_manual(values =pal) +
+    ggtitle(expression('Posterior mean estimates of '~R[0](t)~' for 15-day Infectious Period')) +
+    theme(legend.position = "none",
+          plot.title = element_text(size = 18))
+dev.off()
+
+pdf('../figures/sim_r0_est20_suppfig4.pdf', height = 9, width = 14)
+ggplot(subset(r0EstFull, maxInf == 20), aes(x = time, group = simNumber)) + 
+    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
+    geom_line(aes(y = truth, col = datGen), size = 1) +
+    facet_wrap(~datGen + fitType, nrow = 4) +
+    myTheme +
+    labs(x = 'Epidemic Time', y = expression(R[0](t)),
+         col = 'Data Generation\nScenario')  +
+    scale_color_manual(values =pal) +
+    ggtitle(expression('Posterior mean estimates of '~R[0](t)~' for 20-day Infectious Period')) +
+    theme(legend.position = "none",
+          plot.title = element_text(size = 18))
+dev.off()
+
+
+################################################################################
+# Supplemental Figure 5: MSE of R0(t) (over time)
+
+r0MSE_time <- ddply(r0EstTrue, .(datGen, infPeriodSpec, iddFun, maxInf, time),
+                    summarize,
+                    mse = mean((mean-truth)^2))
+
+# barplot
+r0MSE_time$fitType <- r0MSE_time$iddFun
+r0MSE_time$fitType[r0MSE_time$infPeriodSpec == 'exp'] <- 'exp'
+r0MSE_time$fitType[r0MSE_time$infPeriodSpec == 'PS'] <- 'PS'
+
+# replicate exponential for maxInf of 15 as maxInf does not impact exponential
+r0MSE_timeExp <- r0MSE_time[r0MSE_time$fitType == 'exp',]
+r0MSE_timeExp$maxInf <- 15
+r0MSE_time <- rbind.data.frame(r0MSE_time, r0MSE_timeExp)
+
+# format for plotting labels
+r0MSE_time$fitType <- factor(r0MSE_time$fitType, 
+                             levels = c('dlnormIDD', 'dgammaIDD',
+                                        'logitIDD', 'exp', 
+                                        'PS', 'splineIDD'),
+                             labels = c(expression(`Log-normal`~Pdf^"\206"),
+                                        expression("Gamma"~Pdf^"\206"), 
+                                        expression(Logistic~Decay^"\206"),
+                                        expression(Exponential),
+                                        expression(`Path-specific`), 
+                                        expression(Basis~Spline^"\206")))
+
+r0MSE_time$datGen <- factor(r0MSE_time$datGen,
+                            levels = c('IDD_peak', 'IDD_exp', 
+                                       'IDD_logit', 'PS'),
+                            labels = paste0('Data: ', 
+                                            c('IDD Peak', 'IDD Exp',
+                                              'IDD Logit', 'Path-specific')))
+
+
+maxInfLabs <- c('15-day infectious period',
+                '20-day infectious period')
+names(maxInfLabs) <- c('15', '20')
+r0MSE_time$maxInf <- as.character(r0MSE_time$maxInf)
+
+pal <- brewer.pal(6, 'Dark2')
+pal <- pal[c(1:3, 6, 4:5)]
+
+pdf('../figures/sim_r0t_mse_suppfig5.pdf', height = 6, width = 12.5)
+ggplot(data = r0MSE_time, 
+       aes(x = time, y = mse, col = fitType, linetype = fitType)) +
+    geom_line(size = 0.8, alpha = 0.8) +
+    facet_wrap(maxInf~datGen, nrow =2,
+               labeller = labeller(maxInf = maxInfLabs)) +
+    scale_color_manual(values=pal, labels = parse_format()) +
+    scale_linetype_manual(values = 1:6, labels = parse_format()) +
+    myTheme +
+    labs(title = expression('MSE of'~ R[0](t)),
+         col = 'Modeling Approach         ', 
+         linetype = 'Modeling Approach         ', 
+         y = 'MSE', x = 'Epidemic Time') +
+    theme(legend.text.align = 0,
+          legend.key.width = unit(1.5,"cm"))
 makeFootnote(expression("\206"), 
-             color = "black", size=1, xunit = 0.797, yunit = 30)
+             color = "black", size=1, xunit = 0.806, yunit = 32.2)
 makeFootnote("models fit using the proposed\nIDD transmissibility approach", 
-             color = "black", size=1, xunit = 0.812, yunit = 24)
+             color = "black", size=1, xunit = 0.816, yunit = 25)
 dev.off()
 
 
@@ -605,83 +657,42 @@ selectedModel <- ddply(waicEst, .(datGen, simNumber), summarize,
 
 table(selectedModel$datGen, selectedModel$bestFit)
 
-################################################################################
-# Supplemental Figure 1: Posterior mean R0(t) compared to truth
-
-r0Est$fitType <- r0Est$iddFun
-r0Est$fitType[r0Est$infPeriodSpec == 'exp'] <- 'exp'
-r0Est$fitType[r0Est$infPeriodSpec == 'PS'] <- 'PS'
-
-r0Est$datGen <- factor(r0Est$datGen, 
-                       levels = c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'),
-                       labels = c('IDD Peak', 'IDD Exp', 'IDD Logit', 'PS'))
-
-r0Est$fitType <- factor(r0Est$fitType, 
-                        levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
-                        labels = c('Exponential','Path-specific', 
-                                   'Gamma Pdf', 'Log-normal Pdf', 'Logistic Decay', 'Basis Spline'))
-
-
-pal <- c('magenta3', 'darkorange', 'green3', 'royalblue2')
-
-
-pdf('../figures/sim_r0_est15_suppfig3.pdf', height = 10, width = 12)
-ggplot(subset(r0Est, maxInf == 15), aes(x = time, group = simNumber)) + 
-    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(y = truth, col = datGen), size = 1) +
-    facet_wrap(~datGen + fitType, nrow = 4) +
-    myTheme +
-    labs(x = 'Epidemic Time', y = expression(R[0](t)),
-         col = 'Data Generation\nScenario')  +
-    scale_color_manual(values =pal) +
-    ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
-    theme(legend.position = "none")
-dev.off()
-
-pdf('../figures/sim_r0_est20_suppfig4.pdf', height = 6, width = 12)
-ggplot(subset(r0Est, maxInf == 20), aes(x = time, group = simNumber)) + 
-    geom_line(aes(y = mean), color =  adjustcolor('grey', alpha = 0.5)) +
-    geom_line(aes(y = truth, col = datGen), size = 1) +
-    facet_wrap(~datGen + fitType, nrow = 4) +
-    myTheme +
-    labs(x = 'Epidemic Time', y = expression(R[0](t)),
-         col = 'Data Generation\nScenario')  +
-    scale_color_manual(values =pal) +
-    ggtitle(expression('Posterior mean estimates of '~R[0](t))) +
-    theme(legend.position = "none")
-dev.off()
 
 
 ################################################################################
-# Supplemental Figure 2: Posterior means and 95% CIs for parameters
+# Supplemental Figure 6-10: Posterior means and 95% CIs for parameters
 
-postParamsEst$fitType <- postParamsEst$iddFun
-postParamsEst$fitType[postParamsEst$infPeriodSpec == 'exp'] <- 'exp'
-postParamsEst$fitType[postParamsEst$infPeriodSpec == 'PS'] <- 'PS'
+postParamsAll <- postParamsEst
 
-postParamsEst$fitType <- factor(postParamsEst$fitType, 
-                                levels = c('exp', 'PS', 'dgammaIDD', 'dlnormIDD', 'logitIDD', 'splineIDD'),
+postParamsAll$fitType <- postParamsAll$iddFun
+postParamsAll$fitType[postParamsAll$infPeriodSpec == 'exp'] <- 'exp'
+postParamsAll$fitType[postParamsAll$infPeriodSpec == 'PS'] <- 'PS'
+
+postParamsAll$fitType <- factor(postParamsAll$fitType, 
+                                levels = c('exp', 'PS', 'dgammaIDD', 
+                                           'dlnormIDD', 'logitIDD', 'splineIDD'),
                                 labels = c('Exponential','Path-specific', 
-                                           'Gamma pdf', 'Log-normal pdf', 'Logistic Decay', 'Basis Spline'))
+                                           'Gamma pdf', 'Log-normal pdf',
+                                           'Logistic Decay', 'Basis Spline'))
 
 
 # rename parameters to match manuscript 
-postParamsEst$param[postParamsEst$param == 'rateE'] <- 'rho'
-postParamsEst$param[postParamsEst$param == 'rateI'] <- 'gamma'
+postParamsAll$param[postParamsAll$param == 'rateE'] <- 'rho'
+postParamsAll$param[postParamsAll$param == 'rateI'] <- 'gamma'
 
-postParamsEst$param[postParamsEst$param == 'shape' & 
-                        postParamsEst$fitType == 'Path-specific'] <- 'alpha_I'
-postParamsEst$param[postParamsEst$param == 'rate' & 
-                        postParamsEst$fitType == 'Path-specific'] <- 'beta_I'
+postParamsAll$param[postParamsAll$param == 'shape' & 
+                        postParamsAll$fitType == 'Path-specific'] <- 'alpha_I'
+postParamsAll$param[postParamsAll$param == 'rate' & 
+                        postParamsAll$fitType == 'Path-specific'] <- 'beta_I'
 
-postParamsEst$param[postParamsEst$param == 'shape' & 
-                        postParamsEst$fitType == 'Gamma pdf'] <- 'alpha'
-postParamsEst$param[postParamsEst$param == 'rate' & 
-                        postParamsEst$fitType == 'Gamma pdf'] <- 'beta'
+postParamsAll$param[postParamsAll$param == 'shape' & 
+                        postParamsAll$fitType == 'Gamma pdf'] <- 'alpha'
+postParamsAll$param[postParamsAll$param == 'rate' & 
+                        postParamsAll$fitType == 'Gamma pdf'] <- 'beta'
 
-postParamsEst$param[postParamsEst$param == 'mid'] <- 'w_0'
-postParamsEst$param[postParamsEst$param == 'rate' & 
-                        postParamsEst$fitType == 'Logistic Decay'] <- 'k'
+postParamsAll$param[postParamsAll$param == 'mid'] <- 'w_0'
+postParamsAll$param[postParamsAll$param == 'rate' & 
+                        postParamsAll$fitType == 'Logistic Decay'] <- 'k'
 
 iddPeakParam <- data.frame(datGen = 'IDD_peak',
                            param = c('beta1', 'beta2', 'rho', 'alpha', 'beta'),
@@ -693,7 +704,7 @@ iddLogitParam <- data.frame(datGen = 'IDD_logit',
                             param = c('beta1', 'beta2', 'rho', 'w_0', 'k'),
                             truth = c(-1.77, -7, 0.2, 8, 1.5))
 psParam <- data.frame(datGen = 'PS',
-                      param = c('beta1', 'beta2', 'rateE', 'alpha_I', 'beta_I'),
+                      param = c('beta1', 'beta2', 'rho', 'alpha_I', 'beta_I'),
                       truth = c(-1.77, -7, 0.2, 56, 7))
 
 trueParams <- rbind.data.frame(iddPeakParam, 
@@ -702,40 +713,85 @@ trueParams <- rbind.data.frame(iddPeakParam,
                                psParam)
 
 
-postParamsEst <- merge(postParamsEst, trueParams, 
+postParamsAll <- merge(postParamsAll, trueParams, 
                        by = c('datGen', 'param'),
                        all.x = T)
 
-postParamsEst$datGen <- factor(postParamsEst$datGen, 
+postParamsAll$datGen <- factor(postParamsAll$datGen, 
                                levels = c('IDD_peak', 'IDD_exp', 'IDD_logit', 'PS'),
-                               labels = c('IDD Peak', 'IDD Exp', 'IDD Logit', 'PS'))
+                               labels = paste0('Data: ',
+                                               c('IDD Peak', 'IDD Exp',
+                                                 'IDD Logit', 'PS')))
 
-postParamsEst$param <- factor(postParamsEst$param,
+postParamsAll$param <- factor(postParamsAll$param,
                               levels = c('beta1', 'beta2', 'rho', 'gamma',
                                          'alpha_I', 'beta_I', 'alpha', 'beta',
                                          'meanlog', 'sdlog', 'k', 'w_0', 
-                                         'b1', 'b2', 'b3', 'b4', 'b5'))
+                                         'b1', 'b2', 'b3', 'b4', 'b5'),
+                              labels = c('beta[1]', 'beta[2]', 'rho', 'gamma',
+                                         'alpha[I]', 'beta[I]', 'alpha', 'beta',
+                                         expression("log("~mu~")"),
+                                         expression("log("~sigma~")"), 
+                                         'k', 'w[0]', 
+                                         'b[1]', 'b[2]', 'b[3]', 'b[4]', 'b[5]'))
+
+
+maxInfLabs <- c('15-day inf. period',
+                '20-day inf. period')
+names(maxInfLabs) <- c('15', '20')
+postParamsAll$maxInf <- as.character(postParamsAll$maxInf)
 
 
 # IDD Gamma
-ggplot(subset(postParamsEst, iddFun == 'dgammaIDD' & maxInf == 15), 
-       aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
-    geom_point() + 
-    geom_errorbar() +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
-    myTheme
+pdf('../figures/sim_paramEst_suppfig6.pdf', width = 22, height = 11)
+ggplot(subset(postParamsAll, iddFun == 'dgammaIDD'), 
+       aes(x = simNumber, y = mean, ymin = lower, ymax = upper,
+           col = maxInf)) +
+    geom_errorbar(width = 3) +
+    geom_point(size= 1.5) + 
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 0.8) +
+    facet_grid(param~datGen + maxInf, scales = 'free',
+               labeller = labeller(maxInf = maxInfLabs,
+                                   param = label_parsed)) + 
+    myTheme + 
+    scale_color_manual(values = c('grey25', 'royalblue1')) +
+    guides(col = 'none') +
+    ggtitle('Posterior means and 95% credible intervals\nModel: Gamma pdf') +
+    labs(x = 'Simulation Number', y = 'Value') +
+    theme(plot.title = element_text(size = 22),
+          strip.text = element_text(size = 20))
+dev.off()
 
-ggplot(subset(postParamsEst, iddFun == 'dgammaIDD'& maxInf == 20), 
+# IDD Log-normal
+pdf('../figures/sim_paramEst_suppfig7.pdf', width = 22, height = 11)
+ggplot(subset(postParamsAll, iddFun == 'dlnormIDD'), 
+       aes(x = simNumber, y = mean, ymin = lower, ymax = upper,
+           col = maxInf)) +
+    geom_errorbar(width = 3) +
+    geom_point(size= 1.5) + 
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 0.8) +
+    facet_grid(param~datGen + maxInf, scales = 'free',
+               labeller = labeller(maxInf = maxInfLabs,
+                                   param = label_parsed)) + 
+    myTheme + 
+    scale_color_manual(values = c('grey25', 'royalblue1')) +
+    guides(col = 'none') +
+    ggtitle('Posterior means and 95% credible intervals\nModel: Gamma pdf') +
+    labs(x = 'Simulation Number', y = 'Value') +
+    theme(plot.title = element_text(size = 22),
+          strip.text = element_text(size = 20))
+dev.off()
+
+ggplot(subset(postParamsAll, iddFun == 'dgammaIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
-    geom_errorbar() +
+    geom_errorbar(width = 2) +
     geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
+    facet_grid(oaran~ datGen + , ncol = 5, scales = 'free') + 
     myTheme
 
 # IDD log-normal
-ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15), 
+ggplot(subset(postParamsAll, iddFun == 'dlnormIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +
@@ -743,7 +799,7 @@ ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15),
     facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
     myTheme
 
-ggplot(subset(postParamsEst, iddFun == 'dlnormIDD'& maxInf == 20), 
+ggplot(subset(postParamsAll, iddFun == 'dlnormIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +
@@ -752,7 +808,7 @@ ggplot(subset(postParamsEst, iddFun == 'dlnormIDD'& maxInf == 20),
     myTheme
 
 # IDD logit
-ggplot(subset(postParamsEst, iddFun == 'logitIDD' & maxInf == 15), 
+ggplot(subset(postParamsAll, iddFun == 'logitIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +
@@ -760,7 +816,7 @@ ggplot(subset(postParamsEst, iddFun == 'logitIDD' & maxInf == 15),
     facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
     myTheme
 
-ggplot(subset(postParamsEst, iddFun == 'logitIDD'& maxInf == 20), 
+ggplot(subset(postParamsAll, iddFun == 'logitIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +
@@ -769,7 +825,7 @@ ggplot(subset(postParamsEst, iddFun == 'logitIDD'& maxInf == 20),
     myTheme
 
 # IDD spline
-ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15), 
+ggplot(subset(postParamsAll, iddFun == 'dlnormIDD' & maxInf == 15), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +
@@ -777,7 +833,7 @@ ggplot(subset(postParamsEst, iddFun == 'dlnormIDD' & maxInf == 15),
     facet_wrap(~ datGen + param, ncol = 5, scales = 'free') + 
     myTheme
 
-ggplot(subset(postParamsEst, iddFun == 'dlnormIDD'& maxInf == 20), 
+ggplot(subset(postParamsAll, iddFun == 'dlnormIDD'& maxInf == 20), 
        aes(x = simNumber, y = mean, ymin = lower, ymax = upper)) +
     geom_point() + 
     geom_errorbar() +

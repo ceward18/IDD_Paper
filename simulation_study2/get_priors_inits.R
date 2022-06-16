@@ -88,7 +88,7 @@ get_priors_inits <- function(infPeriodSpec, iddFun, datGen, maxInf) {
             } else if (datGen %in% c('IDD_exp', 'IDD_logit', 'PS')) {
                 
                 iddParamsPrior <- function(x) {
-                    dgamma(x['meanlog'], log(3), 0.2, log = T) +
+                    dnorm(x['meanlog'], log(3), 0.2, log = T) +
                         dgamma(x['sdlog'], 1, 1, log = T)
                 }
                 
