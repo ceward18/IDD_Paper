@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --time=118:00:00
 #SBATCH --mem 100G
-#SBATCH --partition=cpu2021
+#SBATCH --partition=cpu2019
 #SBATCH --array=916,927,924,1700,1790
 
 ####### Set environment variables ###############
