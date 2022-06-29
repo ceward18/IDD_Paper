@@ -130,19 +130,3 @@ runModels <- function(datList, X, infPeriodSpec_i, iddFun_i, datGen_i, maxInf_i,
     
 }
 
-################################################################################
-# Function to make footnote on ggplot for simulation results
-
-makeFootnote <- function(footnoteText,
-                         size = .7, color = grey(.5),
-                         xunit=0.85, yunit = 35) {
-    require(grid)
-    pushViewport(viewport())
-    grid.text(label = footnoteText ,
-              x = unit(xunit,"npc"),
-              y = unit(yunit, "mm"),
-              just = c("left", "bottom"),
-              gp = gpar(cex = size, col = color))
-    
-    popViewport()
-}
