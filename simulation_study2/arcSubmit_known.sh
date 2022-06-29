@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
 #SBATCH --time=118:00:00
-#SBATCH --mem 2400G
+#SBATCH --mem 1000G
 #SBATCH --partition=cpu2021
 #SBATCH --array=916,927,924,1700,1790
 
