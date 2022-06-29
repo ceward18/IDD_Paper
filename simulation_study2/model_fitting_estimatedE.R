@@ -145,7 +145,7 @@ postSummaries <- runModels(datList = datList, X = X,
                            infPeriodSpec_i = infPeriodSpec_i, 
                            iddFun_i = iddFun_i, datGen_i = datGen_i, 
                            maxInf_i = maxInf_i, EType = 'estimated', i = idx, 
-                           niter = 5e5)
+                           niter = 1100000)
 
 # save output in RDS form
 saveRDS(postSummaries, paste0('./batch_output/estimatedE_batch', idx, '.rds'))
