@@ -30,14 +30,15 @@ ebola <- ABSEIR::Kikwit1995
 
 ebola <- ebola[1:135,]
 
-pdf('../figures/ebola_data_fig5.pdf', width = 6, height = 5)
+# pdf('../figures/ebola_data_fig5.pdf', width = 6, height = 4)
 plot(as.Date(ebola$Date), ebola$Count, type='h', 
      main='Daily Counts of Ebola by Symptom Onset Date', ylab='New Cases',
-     xlab = 'Symptom Onset Date', lwd = 2, col = 'grey30')
+     xlab = 'Symptom Onset Date', lwd = 2, col = 'grey30', 
+     cex.main = 1.3, cex.axis = 1.1, cex.lab = 1.2)
 abline(v = as.Date('1995-05-09'), col = 'blue', lty =2, lwd = 3)
 legend('topright', 'Date of\nIntervention', col = 'blue', lty =2, lwd = 3, 
        cex = 1.1, bty = 'n')
-dev.off()
+# dev.off()
 
 
 
@@ -86,10 +87,17 @@ r0Summary$fitType <- factor(r0Summary$fitType,
                                        'IDD - Gamma pdf', 'IDD - Log-normal pdf',
                                        'IDD - Logistic Decay', 'IDD - Basis Spline'))
 
+
+# merge in dates
+ebola$time <- 1:nrow(ebola) - 3
+
+r0Summary <- merge(r0Summary, ebola, by = 'time', all.x = T)
+r0Summary <- r0Summary[-which(is.na(r0Summary$Date)),]
+
 pal <- brewer.pal(6, 'Set2')
 
-pdf('../figures/ebola_r0_fig6.pdf', height = 7, width = 10)
-ggplot(r0Summary, aes(x = time, y = mean, 
+# pdf('../figures/main/ebola_r0_fig6.pdf', height = 6, width = 10)
+ggplot(r0Summary, aes(x = Date, y = mean, 
                       ymin = lower, ymax = upper,
                       col = fitType)) +
     geom_line(size = 1.5) + 
@@ -102,7 +110,26 @@ ggplot(r0Summary, aes(x = time, y = mean,
     scale_color_manual(values = pal) +
     scale_fill_manual(values = pal) +
     guides(fill = 'none', col = 'none')
-dev.off()
+# dev.off()
+
+# which day does R0 cross 1
+expR0 <- r0Summary[r0Summary$infPeriodSpec == 'exp',]
+expR0[c(max(which(expR0$mean > 1)), max(which(expR0$mean > 1)) + 1),]
+
+psR0 <- r0Summary[r0Summary$infPeriodSpec == 'PS',]
+psR0[c(max(which(psR0$mean > 1)), max(which(psR0$mean > 1)) + 1),]
+
+gammaR0 <- r0Summary[which(r0Summary$iddFun == 'dgammaIDD'),]
+gammaR0[c(max(which(gammaR0$mean > 1)), max(which(gammaR0$mean > 1)) + 1),]
+
+lnormR0 <- r0Summary[which(r0Summary$iddFun == 'dlnormIDD'),]
+lnormR0[c(max(which(lnormR0$mean > 1)), max(which(lnormR0$mean > 1)) + 1),]
+
+logitR0 <- r0Summary[which(r0Summary$iddFun == 'logitIDD'),]
+logitR0[c(max(which(logitR0$mean > 1)), max(which(logitR0$mean > 1)) + 1),]
+
+splinesR0 <- r0Summary[which(r0Summary$iddFun == 'splineIDD'),]
+splinesR0[c(max(which(splinesR0$mean > 1)), max(which(splinesR0$mean > 1)) + 1),]
 
 ################################################################################
 ### Figure 7: Posterior mean and 95% CI for IDD curves
@@ -117,7 +144,7 @@ iddSummary$iddFun <- factor(iddSummary$iddFun,
 
 iddCurvePal <- pal[3:6]
 
-pdf('../figures/ebola_iddCurves_fig7.pdf', height = 4, width = 10)
+# pdf('../figures/ebola_iddCurves_fig7.pdf', height = 4, width = 10)
 ggplot(iddSummary, aes(x = infDay, y = median, 
                        ymin = lower, ymax = upper,
                        col = iddFun)) +
@@ -130,7 +157,7 @@ ggplot(iddSummary, aes(x = infDay, y = median,
     scale_fill_manual(values = iddCurvePal) +
     guides(fill = 'none', col = 'none') +
     ggtitle(expression('Posterior median and 95% CI of '~pi[0]^(SE)))
-dev.off()
+# dev.off()
 
 ################################################################################
 ### Table 2: WAIC by model
@@ -146,7 +173,7 @@ waicSummary$fitType <- factor(waicSummary$fitType,
                                          'Gamma pdf', 'Log-normal pdf',
                                          'Logistic Decay', 'Basis Spline'))
 
-tab5 <- t(round(waicSummary$waic, 2))
+tab5 <- t(trimws(format(round(waicSummary$waic, 2), nsmall = 2)))
 row.names(tab5) <- 'WAIC'
 colnames(tab5) <- waicSummary$fitType
 
@@ -166,9 +193,12 @@ paramsSummary$fitType <- factor(paramsSummary$fitType,
                                            'Gamma pdf', 'Log-normal pdf',
                                            'Logistic Decay', 'Basis Spline'))
 
-paramsSummary$mean <- round(paramsSummary$mean, 2)
-paramsSummary$ci <- paste0('(', round(paramsSummary$lower, 2), ', ', 
-                           round(paramsSummary$upper, 2), ')')
+paramsSummary$mean <- trimws(format(round(paramsSummary$mean, 2), nsmall = 2))
+paramsSummary$ci <- paste0('(', 
+                           trimws(format(round(paramsSummary$lower, 2), nsmall = 2)),
+                           ', ', 
+                           trimws(format(round(paramsSummary$upper, 2), nsmall = 2)),
+                           ')')
 
 paramsSummary$postSum <- paste0(paramsSummary$mean, ' ', paramsSummary$ci)
 
@@ -201,13 +231,13 @@ supp_tab_4 <- reshape(tabLong,
 # add in WAIC and posterior R0 for each model
 
 postR0 <- r0Summary[r0Summary$time == 1,]
-postR0$mean <- round(postR0$mean, 2)
-postR0$ci <- paste0('(', round(postR0$lower, 2), ', ', 
-                           round(postR0$upper, 2), ')')
+postR0$mean <- format(round(postR0$mean, 2), nsmall = 2)
+postR0$ci <- paste0('(', trimws(format(round(postR0$lower, 2), nsmall = 2)), ', ', 
+                    trimws(format(round(postR0$upper, 2), nsmall = 2)), ')')
 
 postR0$postSum <- paste0(postR0$mean, ' ', postR0$ci)
 
-supp_tab_4 <- rbind(c('WAIC', round(waicSummary$waic, 2)),
+supp_tab_4 <- rbind(c('WAIC', format(round(waicSummary$waic, 2), nsmall = 2)),
                     c('R0', postR0$postSum),
                     supp_tab_4)
 colnames(supp_tab_4) <- c('', levels(paramsSummary$fitType))
